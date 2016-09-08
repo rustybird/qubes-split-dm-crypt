@@ -39,7 +39,7 @@ red_text() {
 in_out() {
     (
         red_text
-        qvm-run --pass-io --no-color-output --user=root "$@"
+        qvm-run --pass-io --no-color-output --no-color-stderr --user=root "$@"
     )
 }
 
