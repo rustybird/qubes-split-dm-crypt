@@ -1,0 +1,21 @@
+#!/bin/bash
+set -e -o pipefail
+
+. /etc/split-dm-crypt.conf
+
+message() { echo "${0##*/}: $1" >&2; }
+
+header_dir=${HEADER_FILE%/*}
+mkdir -p "$header_dir"
+tmp_file=$(mktemp -p "$header_dir")
+
+head -c "$LUKS1_MAX_HEADER_BYTES" >"$tmp_file"
+
+tmp_file_size=$(stat -c %s "$tmp_file")
+if [[ $tmp_file_size != $LUKS1_MAX_HEADER_BYTES ]]; then
+    message "error: received wrong sized header: $tmp_file_size bytes"
+    exit 1
+fi
+
+truncate -s +10M "$tmp_file"  # add some fake data for cryptsetup
+mv "$tmp_file" "$HEADER_FILE"

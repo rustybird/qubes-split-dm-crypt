@@ -1,0 +1,3 @@
+#!/bin/bash
+
+ALLOWED_OFFSET=4096 "${0%+*}"

@@ -1,0 +1,5 @@
+#!/bin/bash
+set -e -o pipefail
+
+head -c 1 /dev/random >/dev/null
+cat /dev/urandom

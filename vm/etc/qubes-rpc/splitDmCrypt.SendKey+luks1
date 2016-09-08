@@ -1,0 +1,10 @@
+#!/bin/bash
+set -e -o pipefail
+
+. /etc/split-dm-crypt.conf
+
+script --quiet --return \
+       --command "cryptsetup luksOpen $HEADER_FILE $MAP_NAME" \
+       /dev/null >&2
+
+dmsetup table --showkeys "$MAP_NAME" | cut -d " " -f 4,5,8

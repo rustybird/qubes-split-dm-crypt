@@ -1,0 +1,36 @@
+#!/bin/sh
+set -e
+
+usage() {
+    cat >&2 <<END
+
+  blockdev-parsing-disabled - flag all subsequently created block devices, to
+  prevent them from automatically having their content scanned for partitions
+  by the kernel and probed for filesystems etc. by udev.
+
+  Usage: blockdev-parsing-disabled -s|--start-flagging
+                                   -q|--quit-flagging
+                                   -c|--currently-flagging
+
+END
+    exit 1
+}
+
+param=/sys/module/block/parameters/no_part_scan
+
+test $# = 1 || usage
+case $1 in
+    -s|--start-flagging)
+        backport-UDEV_DISABLE_PERSISTENT_STORAGE_RULES_FLAG-rule
+        echo Y >$param
+    ;;
+    -q|--quit-flagging)
+        echo N >$param
+    ;;
+    -c|--currently-flagging)
+        test "$(cat $param)" = Y
+    ;;
+    *)
+        usage
+    ;;
+esac

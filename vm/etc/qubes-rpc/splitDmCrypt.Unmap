@@ -1,0 +1,10 @@
+#!/bin/bash
+set -e -o pipefail
+
+. /etc/split-dm-crypt.conf
+
+while [[ -e /dev/mapper/$MAP_NAME ]]; do
+    dmsetup remove "$MAP_NAME" || sleep 1
+done
+
+sync

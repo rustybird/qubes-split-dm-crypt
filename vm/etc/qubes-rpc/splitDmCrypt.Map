@@ -1,0 +1,27 @@
+#!/bin/bash
+set -e -o pipefail
+
+. /etc/split-dm-crypt.conf
+
+message() { echo "${0##*/}: $1" >&2; }
+
+
+# accept AES-XTS keys with 128+128 or 256+256 bits (= 1*64 or 2*64 hex chars)
+
+good_response=$(
+    export LC_ALL=C
+
+    head -c 200 |
+    grep -m 1 -Ex "aes-xts-plain64 [0-9a-f]{64}{1,2} ${ALLOWED_OFFSET-0}"
+) || {
+    message "error: did not receive acceptable cipher/key/offset"
+    exit 1
+}
+
+read cipher key offset_blocks <<<$good_response
+[[ ${#key} == 128 ]] || message "warning: short key"
+device_blocks=$(blockdev --getsize "$DEVICE")
+mapped_blocks=$(( device_blocks - offset_blocks ))
+table="0 $mapped_blocks crypt $cipher $key 0 $DEVICE $offset_blocks"
+
+dmsetup create --table "$table" -- "$MAP_NAME"

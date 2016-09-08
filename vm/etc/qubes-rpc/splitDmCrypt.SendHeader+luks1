@@ -1,0 +1,6 @@
+#!/bin/bash
+set -e -o pipefail
+
+. /etc/split-dm-crypt.conf
+
+head -c "$LUKS1_MAX_HEADER_BYTES" "$DEVICE"

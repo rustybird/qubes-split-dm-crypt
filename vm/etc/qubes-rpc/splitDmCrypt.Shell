@@ -1,0 +1,9 @@
+#!/bin/bash
+set -e -o pipefail
+
+set -x
+cd /run/split-dm-crypt
+ls
+{ set +x; } 2>/dev/null
+
+script --quiet --return /dev/null  # fake terminal

@@ -1,0 +1,8 @@
+#!/bin/bash
+set -e -o pipefail
+
+. /etc/split-dm-crypt.conf
+
+script --quiet --return \
+       --command "cryptsetup $LUKS1_FORMAT_OPTIONS luksFormat $HEADER_FILE" \
+       /dev/null

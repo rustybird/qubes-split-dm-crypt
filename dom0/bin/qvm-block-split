@@ -1,0 +1,330 @@
+#!/bin/bash
+set -e -o pipefail -o errtrace
+trap 'exit $?' ERR
+
+PATH=$PATH:/usr/lib/qubes
+QUBESRPC=/etc/qubes-rpc
+
+
+#### general functions ########################################################
+
+message() { echo "${0##*/}: $1" >&2; }
+
+direct_tty() {
+    if [[ -t 0 ]]; then
+        local stty_bak
+
+        stty_bak=$(stty -g)
+        trap "stty $stty_bak" EXIT  # restore settings on (sub)shell exit
+        stty -echo -icanon  # disable echoing and line buffering
+    fi
+}
+
+ansi_format() {
+    local fd
+
+    for fd in 1 2; do
+        if [[ -t $fd ]]; then
+            printf "\e[%sm" "$1" >&$fd
+        fi
+    done
+}
+
+red_text() {
+    trap "ansi_format 0" EXIT  # reset formatting on (sub)shell exit
+    ansi_format "0;31"         # reset formatting; red foreground
+    red_text() { :; }  # don't do this again in deeper scope
+}
+
+in_out() {
+    (
+        red_text
+        qvm-run --pass-io --no-color-output --user=root "$@"
+    )
+}
+
+out() { in_out "$@" </dev/null; }
+
+dvm_reaper_daemon() {
+    (
+        qvm-run --pass-io "$1" 'kill -s STOP $$' || true
+        qfile-daemon-dvm FINISH "$1"
+    ) </dev/null >/dev/null 2>&1 &
+}
+
+new_offline_dvm() {
+    local dvm
+
+    dvm=$(qfile-daemon-dvm LAUNCH dom0 "" red)
+    dvm_reaper_daemon "$dvm"
+    qvm-prefs --set "$dvm" netvm none
+    echo "$dvm"
+}
+
+# don't barf on EPIPE/SIGPIPE
+qvm_block_list_pipe() { qvm-block --list 2>/dev/null || true; }
+
+qvm_block_list_device_attached_vm() {
+     qvm_block_list_pipe |
+     grep "^$1	.* (attached to '" |
+     cut -d \' -f 2
+}
+
+
+#### Split dm-crypt functions #################################################
+
+dev_dvm() {
+    local DEV_DVM
+
+    if ! qvm_block_list_pipe | grep -q "^$BLOCK_DEV	"; then
+        message "error: could not find block device $BLOCK_DEV"
+        exit 1
+    fi
+
+    message "starting device DisposableVM"
+    DEV_DVM=$(new_offline_dvm)
+    message "started  device DisposableVM $DEV_DVM"
+
+    message "in $DEV_DVM: disabling block device content parsing"
+    out "$DEV_DVM" "blockdev-parsing-disabled --start-flagging"
+
+    message "attaching $BLOCK_DEV to $DEV_DVM"
+    qvm-block --frontend=xvds --attach $READONLY "$DEV_DVM" "$BLOCK_DEV"
+
+    "$@"
+}
+
+header_dvm() {
+    local HEADER_DVM
+
+    message "starting header DisposableVM"
+    HEADER_DVM=$(new_offline_dvm)
+    message "started  header DisposableVM $HEADER_DVM"
+
+    "$@"
+
+    message "stopping $HEADER_DVM"
+    qvm-kill "$HEADER_DVM"
+}
+
+format_header_luks1() {
+    local vm=${HEADER_DVM-$DEV_DVM}
+
+    message "in $vm: running luksFormat on header file:"
+    (
+        direct_tty
+        in_out "$vm" "QUBESRPC splitDmCrypt.FormatHeader+luks1 dom0"
+    )
+}
+
+header_sh() {
+    local vm=${HEADER_DVM-$DEV_DVM}
+
+    message "in $vm: opening shell:"
+    (
+        direct_tty
+        in_out "$vm" "QUBESRPC splitDmCrypt.Shell dom0"
+    )
+}
+
+random_header_luks1() {
+    local vm=${HEADER_DVM-$DEV_DVM}
+
+    message "in $vm: generating random header"
+    out "$vm" "$QUBESRPC/splitDmCrypt.SendHeader+random |
+               $QUBESRPC/splitDmCrypt.ReceiveHeader+luks1"
+}
+
+transfer_header_luks1() {
+    message "sending header from $DEV_DVM to $HEADER_DVM"
+    (
+        red_text
+        out       "$DEV_DVM" "QUBESRPC splitDmCrypt.SendHeader+luks1 dom0" |
+        in_out "$HEADER_DVM" "QUBESRPC splitDmCrypt.ReceiveHeader+luks1 dom0"
+    )
+}
+
+open_luks1() {
+    transfer_header_luks1
+
+    message "sending key    from $HEADER_DVM to $DEV_DVM:"
+    (
+        red_text
+        (
+            direct_tty
+            in_out "$HEADER_DVM" "QUBESRPC splitDmCrypt.SendKey+luks1 dom0"
+        ) | in_out    "$DEV_DVM" "QUBESRPC splitDmCrypt.Map+luks1 dom0"
+    )
+}
+
+find_dm_dev() {
+    qvm_block_list_pipe |
+    grep -m 1 -E "^$1:dm-[0-9]+	split-dm-crypt " |
+    cut -f 1
+}
+
+attach_decrypted() {
+    "$@"
+
+    if ! dm_dev=$(find_dm_dev "$DEV_DVM"); then
+        message "error: could not find device-mapper device in $DEV_DVM"
+        exit 1
+    fi
+
+    if [[ $DEST_VM == \$dispvm ]]; then
+        message "starting destination DisposableVM"
+        DEST_VM=$(new_offline_dvm)
+        message "started  destination DisposableVM $DEST_VM"
+    else
+        message "ensuring destination VM is running"
+        qvm-start --quiet --skip-if-running "$DEST_VM"
+    fi
+
+    message "attaching $dm_dev to $DEST_VM"
+    qvm-block --attach $READONLY "$DEST_VM" "$dm_dev"
+}
+
+double_detach() {
+    local dev_dvm
+
+    if ! dev_dvm=$(qvm_block_list_device_attached_vm "$BLOCK_DEV"); then
+        message "error: could not find device DisposableVM for $BLOCK_DEV"
+        exit 1
+    fi
+
+    if ! dm_dev=$(find_dm_dev "$dev_dvm"); then
+        message "error: could not find device-mapper device in $dev_dvm"
+        exit 1
+    fi
+
+    message "detaching $dm_dev"
+    qvm-block --detach "$dm_dev"
+
+    message "in $dev_dvm: unmapping"
+    out "$dev_dvm" "QUBESRPC splitDmCrypt.Unmap dom0"
+
+    message "detaching $BLOCK_DEV"
+    qvm-block --detach "$BLOCK_DEV"
+
+    message "stopping $dev_dvm"
+    qvm-kill "$dev_dvm"
+}
+
+overwrite_everything_with_random() {
+    message "in $DEV_DVM: mapping with random key"
+    out "$DEV_DVM" "$QUBESRPC/splitDmCrypt.SendKey+random |
+                    $QUBESRPC/splitDmCrypt.Map"
+
+    message "in $DEV_DVM: overwriting:"
+    out "$DEV_DVM"  "QUBESRPC splitDmCrypt.ZeroMapped dom0"
+
+    message "in $DEV_DVM: unmapping"
+    out "$DEV_DVM"  "QUBESRPC splitDmCrypt.Unmap dom0"
+
+    message "stopping $DEV_DVM"
+    qvm-kill "$DEV_DVM"
+}
+
+change_header_luks1() {
+    local get_header=$1
+    local mod_header=${2-:}
+
+    "$get_header"
+    "$mod_header"
+
+    if [[ $HEADER_DVM ]]; then
+        message "sending header from $HEADER_DVM to $DEV_DVM"
+        (
+            red_text
+            out "$HEADER_DVM" "QUBESRPC splitDmCrypt.SendHeader+file dom0" |
+            in_out "$DEV_DVM" "QUBESRPC splitDmCrypt.ReceiveHeader+luks1 dom0"
+        )
+    fi
+
+    message "in $DEV_DVM: writing header to device"
+    out "$DEV_DVM" "QUBESRPC splitDmCrypt.ReplaceHeader+luks1 dom0"
+
+    message "detaching $BLOCK_DEV"
+    qvm-block --detach "$BLOCK_DEV"
+
+    message "stopping $DEV_DVM"
+    qvm-kill "$DEV_DVM"
+}
+
+usage() {
+    cat >&2 <<END
+
+  qvm-block-split - manage "Split dm-crypt", isolating device-mapper based
+  secondary storage encryption and LUKS header processing to DisposableVMs
+
+  Usage: qvm-block-split --attach|-a [--ro] [<dst-vm>] <src-vm>:<device>
+                         --detach|-d                   <src-vm>:<device>
+
+                         --overwrite-everything=random <src-vm>:<device>
+                         --overwrite-header=random     <src-vm>:<device>
+                         --overwrite-header=format     <src-vm>:<device>
+                         --overwrite-header=shell      <src-vm>:<device>
+                         --modify-header=shell         <src-vm>:<device>
+
+  The <dst-vm> argument defaults to yet another DisposableVM.
+
+END
+    exit 1
+}
+
+
+#### main program #############################################################
+
+ARGS=()
+READONLY=
+for arg; do
+    [[ $arg == --ro ]] && READONLY=$arg || ARGS+=( "$arg" )
+done
+
+if [[ ( ${#ARGS[@]} == 3 || $READONLY ) &&
+      !  ${ARGS[0]} =~ ^--attach|-a$ ]]; then
+    usage
+fi
+
+case ${#ARGS[@]} in
+    2)
+        DEST_VM=\$dispvm
+        BLOCK_DEV=${ARGS[1]}
+    ;;
+    3)
+        DEST_VM=${ARGS[1]}
+        BLOCK_DEV=${ARGS[2]}
+    ;;
+    *)
+        usage
+    ;;
+esac
+
+case ${ARGS[0]} in
+    --attach|-a)
+        dev_dvm attach_decrypted header_dvm open_luks1
+    ;;
+    --detach|-d)
+        double_detach
+    ;;
+    --overwrite-everything=random)
+        dev_dvm overwrite_everything_with_random
+    ;;
+    --overwrite-header=random)
+        dev_dvm change_header_luks1 random_header_luks1
+    ;;
+    --overwrite-header=format)
+        dev_dvm change_header_luks1 random_header_luks1 format_header_luks1
+    ;;
+    --overwrite-header=shell)
+        dev_dvm change_header_luks1 random_header_luks1 header_sh
+    ;;
+    --modify-header=shell)
+        dev_dvm header_dvm change_header_luks1 transfer_header_luks1 header_sh
+    ;;
+    *)
+        usage
+    ;;
+esac
+
+message "done"
