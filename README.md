@@ -91,3 +91,11 @@ qvm-block-split --attach|-a [--ro] [<dst-vm>] <src-vm>:<device>
 
 2. Copy `dom0/bin/qvm-block-split` to dom0, e.g. into `~/bin/`, inspect
    the code extra carefully, and `chmod +x` the script.
+
+
+## Safety warning
+
+The code's error handling is strict, and I haven't experienced any data
+loss during development. Nevertheless, this is an early release. Please
+**ensure you have a backup of all drives that are connected to your
+computer.**
