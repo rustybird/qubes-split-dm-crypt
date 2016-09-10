@@ -1,4 +1,5 @@
 IMPORT{db}="UDEV_DISABLE_PERSISTENT_STORAGE_RULES_FLAG"
+IMPORT{db}="DM_NOSCAN"
 IMPORT{db}="UDISKS_IGNORE"
 
-ACTION=="add", SUBSYSTEM=="block", PROGRAM="/usr/sbin/blockdev-parsing-disabled --currently-flagging", ENV{UDEV_DISABLE_PERSISTENT_STORAGE_RULES_FLAG}="1", ENV{UDISKS_IGNORE}="1"
+ACTION=="add", SUBSYSTEM=="block", PROGRAM="/usr/sbin/blockdev-parsing-disabled --currently-flagging", ENV{UDEV_DISABLE_PERSISTENT_STORAGE_RULES_FLAG}="1", ENV{DM_NOSCAN}="1", ENV{UDISKS_IGNORE}="1"
