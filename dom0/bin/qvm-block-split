@@ -108,31 +108,25 @@ header_dvm() {
 }
 
 format_header_luks1() {
-    local vm=${HEADER_DVM-$DEV_DVM}
-
-    message "in $vm: running luksFormat on header file:"
+    message "in $CHANGE_DVM: running luksFormat on header file:"
     (
         direct_tty
-        in_out "$vm" "QUBESRPC splitDmCrypt.FormatHeader+luks1 dom0"
+        in_out "$CHANGE_DVM" "QUBESRPC splitDmCrypt.FormatHeader+luks1 dom0"
     )
 }
 
 header_sh() {
-    local vm=${HEADER_DVM-$DEV_DVM}
-
-    message "in $vm: opening shell:"
+    message "in $CHANGE_DVM: opening shell:"
     (
         direct_tty
-        in_out "$vm" "QUBESRPC splitDmCrypt.Shell dom0"
+        in_out "$CHANGE_DVM" "QUBESRPC splitDmCrypt.Shell dom0"
     )
 }
 
 random_header_luks1() {
-    local vm=${HEADER_DVM-$DEV_DVM}
-
-    message "in $vm: generating random header"
-    out "$vm" "$QUBESRPC/splitDmCrypt.SendHeader+random |
-               $QUBESRPC/splitDmCrypt.ReceiveHeader+luks1"
+    message "in $CHANGE_DVM: generating random header"
+    out "$CHANGE_DVM" "$QUBESRPC/splitDmCrypt.SendHeader+random |
+                       $QUBESRPC/splitDmCrypt.ReceiveHeader+luks1"
 }
 
 transfer_header_luks1() {
@@ -226,6 +220,7 @@ overwrite_everything_with_random() {
 }
 
 change_header_luks1() {
+    local CHANGE_DVM=${HEADER_DVM-$DEV_DVM}
     local get_header=$1
     local mod_header=${2-:}
 
