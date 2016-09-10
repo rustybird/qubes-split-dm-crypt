@@ -205,6 +205,9 @@ double_detach() {
 }
 
 overwrite_everything_with_random() {
+    message "in $DEV_DVM: waiting for entropy pool initialization"
+    out "$DEV_DVM" "QUBESRPC splitDmCrypt.WaitForRandom dom0"
+
     message "in $DEV_DVM: mapping with random key"
     out "$DEV_DVM" "$QUBESRPC/splitDmCrypt.SendKey+random |
                     $QUBESRPC/splitDmCrypt.Map"
@@ -223,6 +226,9 @@ change_header_luks1() {
     local CHANGE_DVM=${HEADER_DVM-$DEV_DVM}
     local get_header=$1
     local mod_header=${2-:}
+
+    message "in $CHANGE_DVM: waiting for entropy pool initialization"
+    out "$CHANGE_DVM" "QUBESRPC splitDmCrypt.WaitForRandom dom0"
 
     "$get_header"
     "$mod_header"
