@@ -108,7 +108,7 @@ header_dvm() {
 }
 
 format_header_luks1() {
-    message "in $CHANGE_DVM: running luksFormat on header file:"
+    message "in $CHANGE_DVM: running luksFormat on header file"
     (
         direct_tty
         in_out "$CHANGE_DVM" "QUBESRPC splitDmCrypt.FormatHeader+luks1 dom0"
@@ -116,7 +116,7 @@ format_header_luks1() {
 }
 
 header_sh() {
-    message "in $CHANGE_DVM: opening shell:"
+    message "in $CHANGE_DVM: opening shell"
     (
         direct_tty
         in_out "$CHANGE_DVM" "QUBESRPC splitDmCrypt.Shell dom0"
@@ -141,7 +141,7 @@ transfer_header_luks1() {
 open_luks1() {
     transfer_header_luks1
 
-    message "sending key from $HEADER_DVM to $DEV_DVM:"
+    message "sending key from $HEADER_DVM to $DEV_DVM"
     (
         red_text
         (
@@ -212,7 +212,7 @@ overwrite_everything_with_random() {
     out "$DEV_DVM" "$QUBESRPC/splitDmCrypt.SendKey+random |
                     $QUBESRPC/splitDmCrypt.Map"
 
-    message "in $DEV_DVM: overwriting:"
+    message "in $DEV_DVM: overwriting"
     out "$DEV_DVM"  "QUBESRPC splitDmCrypt.ZeroMapped dom0"
 
     message "in $DEV_DVM: unmapping"
