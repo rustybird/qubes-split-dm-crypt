@@ -39,10 +39,6 @@ familiar `qvm-block` syntax, and some other commands are included:
   256+256 (instead of 128+128) bit keys, SHA512 (instead of SHA1) PBKDF2
   key derivation with 5 (instead of 0.1) seconds iteration time
 
-When attaching, the destination VM argument can be omitted, in which
-case the decrypted disk will be attached to yet another offline
-DisposableVM.
-
 ```
 qvm-block-split --attach|-a [--ro] [<dst-vm>] <src-vm>:<device>
                 --detach|-d                   <src-vm>:<device>
@@ -53,6 +49,10 @@ qvm-block-split --attach|-a [--ro] [<dst-vm>] <src-vm>:<device>
                 --overwrite-header=shell      <src-vm>:<device>
                 --modify-header=shell         <src-vm>:<device>
 ```
+
+- When attaching, the destination VM argument can be omitted, in which
+  case the decrypted disk will be attached to yet another offline
+  DisposableVM.
 
 
 ## Remaining attacks

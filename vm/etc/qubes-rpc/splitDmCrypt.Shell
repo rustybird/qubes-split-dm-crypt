@@ -1,8 +1,10 @@
 #!/bin/bash
 set -e -o pipefail
 
+source /etc/split-dm-crypt.conf
+
 set -x
-cd /run/split-dm-crypt
+cd "$TEMP_DIR"
 ls
 { set +x; } 2>/dev/null
 

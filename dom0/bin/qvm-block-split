@@ -39,7 +39,8 @@ red_text() {
 in_out() {
     (
         red_text
-        qvm-run --pass-io --no-color-output --no-color-stderr --user=root "$@"
+        qvm-run --no-color-output --no-color-stderr \
+                --pass-io --user=root "$@"
     )
 }
 
@@ -75,6 +76,7 @@ qvm_block_list_device_attached_vm() {
 
 dev_dvm() {
     local DEV_DVM
+    local HEADER_DVM
 
     if ! qvm_block_list_pipe | grep -q "^$BLOCK_DEV	"; then
         message "error: could not find block device $BLOCK_DEV"
@@ -84,6 +86,7 @@ dev_dvm() {
     message "starting device DisposableVM"
     DEV_DVM=$(new_offline_dvm)
     message "started device DisposableVM $DEV_DVM"
+    HEADER_DVM=$DEV_DVM  # for non header_dvm() case
 
     message "in $DEV_DVM: disabling block device content parsing"
     out "$DEV_DVM" "blockdev-parsing-disabled --start-flagging"
@@ -95,8 +98,6 @@ dev_dvm() {
 }
 
 header_dvm() {
-    local HEADER_DVM
-
     message "starting header DisposableVM"
     HEADER_DVM=$(new_offline_dvm)
     message "started header DisposableVM $HEADER_DVM"
@@ -108,24 +109,24 @@ header_dvm() {
 }
 
 format_header_luks1() {
-    message "in $CHANGE_DVM: running luksFormat on header file"
+    message "in $HEADER_DVM: running luksFormat on header file"
     (
         direct_tty
-        in_out "$CHANGE_DVM" "QUBESRPC splitDmCrypt.FormatHeader+luks1 dom0"
+        in_out "$HEADER_DVM" "QUBESRPC splitDmCrypt.FormatHeader+luks1 dom0"
     )
 }
 
 header_sh() {
-    message "in $CHANGE_DVM: opening shell"
+    message "in $HEADER_DVM: opening shell"
     (
         direct_tty
-        in_out "$CHANGE_DVM" "QUBESRPC splitDmCrypt.Shell dom0"
+        in_out "$HEADER_DVM" "QUBESRPC splitDmCrypt.Shell dom0"
     )
 }
 
 random_header_luks1() {
-    message "in $CHANGE_DVM: generating random header"
-    out "$CHANGE_DVM" "$QUBESRPC/splitDmCrypt.SendHeader+random |
+    message "in $HEADER_DVM: generating random header"
+    out "$HEADER_DVM" "$QUBESRPC/splitDmCrypt.SendHeader+random |
                        $QUBESRPC/splitDmCrypt.ReceiveHeader+luks1"
 }
 
@@ -223,17 +224,16 @@ overwrite_everything_with_random() {
 }
 
 change_header_luks1() {
-    local CHANGE_DVM=${HEADER_DVM-$DEV_DVM}
     local get_header=$1
-    local mod_header=${2-:}
+    local mod_header=$2
 
-    message "in $CHANGE_DVM: waiting for entropy pool initialization"
-    out "$CHANGE_DVM" "QUBESRPC splitDmCrypt.WaitForRandom dom0"
+    message "in $HEADER_DVM: waiting for entropy pool initialization"
+    out "$HEADER_DVM" "QUBESRPC splitDmCrypt.WaitForRandom dom0"
 
-    "$get_header"
-    "$mod_header"
+    $get_header
+    $mod_header
 
-    if [[ $HEADER_DVM ]]; then
+    if [[ $HEADER_DVM != $DEV_DVM ]]; then
         message "sending header from $HEADER_DVM to $DEV_DVM"
         (
             red_text
@@ -279,7 +279,14 @@ END
 ARGS=()
 READONLY=
 for arg; do
-    [[ $arg == --ro ]] && READONLY=$arg || ARGS+=( "$arg" )
+    case $arg in
+        --ro)
+            READONLY=$arg
+        ;;
+        *)
+            ARGS+=( "$arg" )
+        ;;
+    esac
 done
 
 if [[ ( ${#ARGS[@]} == 3 || $READONLY ) &&

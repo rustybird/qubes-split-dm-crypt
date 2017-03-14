@@ -3,8 +3,7 @@ set -e -o pipefail
 
 source /etc/split-dm-crypt.conf
 
-script --quiet --return \
-       --command "cryptsetup luksOpen $HEADER_FILE $MAP_NAME" \
-       /dev/null >&2
+cmd="cryptsetup luksOpen $HEADER_FILE $MAP_NAME"
 
+script --quiet --return --command "$cmd" /dev/null >&2
 dmsetup table --showkeys "$MAP_NAME" | cut -d " " -f 4,5,8
