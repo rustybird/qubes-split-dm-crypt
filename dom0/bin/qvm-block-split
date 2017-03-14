@@ -83,7 +83,7 @@ dev_dvm() {
 
     message "starting device DisposableVM"
     DEV_DVM=$(new_offline_dvm)
-    message "started  device DisposableVM $DEV_DVM"
+    message "started device DisposableVM $DEV_DVM"
 
     message "in $DEV_DVM: disabling block device content parsing"
     out "$DEV_DVM" "blockdev-parsing-disabled --start-flagging"
@@ -99,7 +99,7 @@ header_dvm() {
 
     message "starting header DisposableVM"
     HEADER_DVM=$(new_offline_dvm)
-    message "started  header DisposableVM $HEADER_DVM"
+    message "started header DisposableVM $HEADER_DVM"
 
     "$@"
 
@@ -141,7 +141,7 @@ transfer_header_luks1() {
 open_luks1() {
     transfer_header_luks1
 
-    message "sending key    from $HEADER_DVM to $DEV_DVM:"
+    message "sending key from $HEADER_DVM to $DEV_DVM:"
     (
         red_text
         (
@@ -168,7 +168,7 @@ attach_decrypted() {
     if [[ $DEST_VM == \$dispvm ]]; then
         message "starting destination DisposableVM"
         DEST_VM=$(new_offline_dvm)
-        message "started  destination DisposableVM $DEST_VM"
+        message "started destination DisposableVM $DEST_VM"
     else
         message "ensuring destination VM is running"
         qvm-start --quiet --skip-if-running "$DEST_VM"
