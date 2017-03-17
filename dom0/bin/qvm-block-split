@@ -40,7 +40,7 @@ in_out() {
     (
         red_text
         qvm-run --no-color-output --no-color-stderr \
-                --pass-io --user=root "$@"
+                --auto --pass-io --user=root "$@"
     )
 }
 
@@ -139,8 +139,25 @@ transfer_header_luks1() {
     )
 }
 
+transfer_keyfile() {
+    if [[ $KEYFILE_PATH ]]; then
+        message "sending key file from $KEYFILE_VM to $HEADER_DVM"
+        (
+            red_text
+            if [[ $KEYFILE_VM == dom0 ]]; then
+                cat -- "$KEYFILE_PATH"
+            else
+                printf '%s\0' "$KEYFILE_PATH" |
+                in_out "$KEYFILE_VM" "cd ~user; xargs -0 cat --"
+            fi |
+            in_out "$HEADER_DVM" "QUBESRPC splitDmCrypt.ReceiveKeyfile dom0"
+        )
+    fi
+}
+
 open_luks1() {
     transfer_header_luks1
+    transfer_keyfile
 
     message "sending key from $HEADER_DVM to $DEV_DVM"
     (
@@ -231,6 +248,7 @@ change_header_luks1() {
     out "$HEADER_DVM" "QUBESRPC splitDmCrypt.WaitForRandom dom0"
 
     $get_header
+    ${mod_header:+transfer_keyfile}
     $mod_header
 
     if [[ $HEADER_DVM != $DEV_DVM ]]; then
@@ -258,16 +276,17 @@ usage() {
   qvm-block-split - manage "Split dm-crypt", isolating device-mapper based
   secondary storage encryption and LUKS header processing to DisposableVMs
 
-  Usage: qvm-block-split --attach|-a [--ro] [<dst-vm>] <src-vm>:<device>
-                         --detach|-d                   <src-vm>:<device>
+  Usage: qvm-block-split --attach|-a [--ro] [<k>] [<dst-vm>] <src-vm>:<device>
+                         --detach|-d                         <src-vm>:<device>
 
-                         --overwrite-everything=random <src-vm>:<device>
-                         --overwrite-header=random     <src-vm>:<device>
-                         --overwrite-header=format     <src-vm>:<device>
-                         --overwrite-header=shell      <src-vm>:<device>
-                         --modify-header=shell         <src-vm>:<device>
+                         --overwrite-everything=random       <src-vm>:<device>
+                         --overwrite-header=random           <src-vm>:<device>
+                         --overwrite-header=format   [<k>]   <src-vm>:<device>
+                         --overwrite-header=shell    [<k>]   <src-vm>:<device>
+                         --modify-header=shell       [<k>]   <src-vm>:<device>
 
   The <dst-vm> argument defaults to yet another DisposableVM.
+  <k> stands for an optional --key-file=[<key-vm>:]<file> argument.
 
 END
     exit 1
@@ -277,9 +296,21 @@ END
 #### main program #############################################################
 
 ARGS=()
+KEYFILE_VM=
+KEYFILE_PATH=
 READONLY=
 for arg; do
     case $arg in
+        --key-file=?*)
+            val=${arg#*=}
+            if [[ $val == [!/.]*:* ]]; then
+                KEYFILE_VM=${val%%:*}
+                KEYFILE_PATH=${val#*:}
+            else
+                KEYFILE_VM=dom0
+                KEYFILE_PATH=$val
+            fi
+        ;;
         --ro)
             READONLY=$arg
         ;;

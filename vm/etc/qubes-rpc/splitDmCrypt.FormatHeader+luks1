@@ -4,5 +4,6 @@ set -e -o pipefail
 source /etc/split-dm-crypt.conf
 
 cmd="cryptsetup $LUKS1_FORMAT_OPTIONS luksFormat $HEADER_FILE"
+[[ ! -e $KEY_FILE ]] || cmd+=" $KEY_FILE"
 
 script --quiet --return --command "$cmd" /dev/null

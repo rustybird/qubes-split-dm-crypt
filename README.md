@@ -40,19 +40,23 @@ familiar `qvm-block` syntax, and some other commands are included:
   key derivation with 5 (instead of 0.1) seconds iteration time
 
 ```
-qvm-block-split --attach|-a [--ro] [<dst-vm>] <src-vm>:<device>
-                --detach|-d                   <src-vm>:<device>
+qvm-block-split --attach|-a [--ro] [<k>] [<dst-vm>] <src-vm>:<device>
+                --detach|-d                         <src-vm>:<device>
 
-                --overwrite-everything=random <src-vm>:<device>
-                --overwrite-header=random     <src-vm>:<device>
-                --overwrite-header=format     <src-vm>:<device>
-                --overwrite-header=shell      <src-vm>:<device>
-                --modify-header=shell         <src-vm>:<device>
+                --overwrite-everything=random       <src-vm>:<device>
+                --overwrite-header=random           <src-vm>:<device>
+                --overwrite-header=format   [<k>]   <src-vm>:<device>
+                --overwrite-header=shell    [<k>]   <src-vm>:<device>
+                --modify-header=shell       [<k>]   <src-vm>:<device>
 ```
 
 - When attaching, the destination VM argument can be omitted, in which
   case the decrypted disk will be attached to yet another offline
   DisposableVM.
+
+- Operations marked with `[<k>]` take an optional
+  `--key-file=[<key-vm>:]<file>` argument, where `<key-vm>` defaults to
+  `dom0`.
 
 
 ## Remaining attacks

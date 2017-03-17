@@ -1,0 +1,10 @@
+#!/bin/bash
+set -e -o pipefail
+
+source /etc/split-dm-crypt.conf
+
+mkdir -p "$TEMP_DIR"
+temp_file=$(mktemp -p "$TEMP_DIR")
+
+head -c "$MAX_KEY_FILE_BYTES" >"$temp_file"
+mv "$temp_file" "$KEY_FILE"
