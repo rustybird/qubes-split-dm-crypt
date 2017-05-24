@@ -42,8 +42,8 @@ The <dst-vm> argument defaults to yet another DisposableVM.
 <k> stands for an optional --key-file=[<key-vm>:]<file> argument.
 ```
 
-As seen above, the `qvm-block-split` attach/detach commands accept a
-subset of the familiar `qvm-block` syntax, and some other commands are
+As seen above, **the `qvm-block-split` attach/detach commands accept a
+subset of the familiar `qvm-block` syntax**, and some other commands are
 included:
 
 - Fully overwrite a device with random data
