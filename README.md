@@ -28,17 +28,6 @@ later to read it.** (But see below for caveats.)
 
 ## Usage
 
-The `qvm-block-split` attach/detach commands accept a subset of the
-familiar `qvm-block` syntax, and some other commands are included:
-
-- Fully overwrite a device with random data
-
-- Overwrite just the LUKS header with random data
-
-- Format a new LUKS device with modern crypto parameters: AES-XTS with
-  256+256 (instead of 128+128) bit keys, SHA512 (instead of SHA1) PBKDF2
-  key derivation with 5 (instead of 0.1) seconds iteration time
-
 ```
 qvm-block-split --attach|-a [--ro] [<k>] [<dst-vm>] <src-vm>:<device>
                 --detach|-d                         <src-vm>:<device>
@@ -48,15 +37,22 @@ qvm-block-split --attach|-a [--ro] [<k>] [<dst-vm>] <src-vm>:<device>
                 --overwrite-header=format   [<k>]   <src-vm>:<device>
                 --overwrite-header=shell    [<k>]   <src-vm>:<device>
                 --modify-header=shell       [<k>]   <src-vm>:<device>
+
+The <dst-vm> argument defaults to yet another DisposableVM.
+<k> stands for an optional --key-file=[<key-vm>:]<file> argument.
 ```
 
-- When attaching, the destination VM argument can be omitted, in which
-  case the decrypted disk will be attached to yet another offline
-  DisposableVM.
+As seen above, the `qvm-block-split` attach/detach commands accept a
+subset of the familiar `qvm-block` syntax, and some other commands are
+included:
 
-- Operations marked with `[<k>]` take an optional
-  `--key-file=[<key-vm>:]<file>` argument, where `<key-vm>` defaults to
-  `dom0`.
+- Fully overwrite a device with random data
+
+- Overwrite just the LUKS header with random data
+
+- Format a new LUKS device with modern crypto parameters: AES-XTS with
+  256+256 (instead of 128+128) bit keys, SHA512 (instead of SHA1) PBKDF2
+  key derivation with 5 (instead of 0.1) seconds iteration time
 
 
 ## Remaining attacks
