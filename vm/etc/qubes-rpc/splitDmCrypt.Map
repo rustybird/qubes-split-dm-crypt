@@ -19,7 +19,7 @@ good_response=$(
 }
 
 read cipher key offset_blocks <<<$good_response
-[[ ${#key} == 128 ]] || message "warning: short key"
+[[ ${#key} == 128 ]] || message "warning: short key is not post-quantum secure"
 device_blocks=$(blockdev --getsize "$DEVICE")
 mapped_blocks=$(( device_blocks - offset_blocks ))
 table="0 $mapped_blocks crypt $cipher $key 0 $DEVICE $offset_blocks"
