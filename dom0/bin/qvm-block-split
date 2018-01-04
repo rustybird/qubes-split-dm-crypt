@@ -3,7 +3,7 @@ set -e -o pipefail -o errtrace
 trap 'exit $?' ERR
 
 PATH=$PATH:/usr/lib/qubes
-QUBESRPC=/etc/qubes-rpc
+QUBESRPC='PATH=/usr/local/etc/qubes-rpc:/etc/qubes-rpc:$PATH'
 
 
 #### general functions ########################################################
@@ -126,8 +126,8 @@ header_sh() {
 
 random_header_luks1() {
     message "in $HEADER_DVM: generating random header"
-    out "$HEADER_DVM" "$QUBESRPC/splitDmCrypt.SendHeader+random |
-                       $QUBESRPC/splitDmCrypt.ReceiveHeader+luks1"
+    out "$HEADER_DVM" "$QUBESRPC; splitDmCrypt.SendHeader+random |
+                                  splitDmCrypt.ReceiveHeader+luks1"
 }
 
 transfer_header_luks1() {
@@ -230,8 +230,8 @@ overwrite_everything_with_random() {
     out "$DEV_DVM" "QUBESRPC splitDmCrypt.WaitForRandom dom0"
 
     message "in $DEV_DVM: mapping with random key"
-    out "$DEV_DVM" "$QUBESRPC/splitDmCrypt.SendKey+random |
-                    $QUBESRPC/splitDmCrypt.Map"
+    out "$DEV_DVM" "$QUBESRPC; splitDmCrypt.SendKey+random |
+                               splitDmCrypt.Map"
 
     message "in $DEV_DVM: overwriting"
     out "$DEV_DVM"  "QUBESRPC splitDmCrypt.ZeroMapped dom0"
