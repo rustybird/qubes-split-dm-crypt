@@ -38,8 +38,7 @@ red_text() {
 in_out() {
     (
         red_text
-        qvm-run --no-color-output --no-color-stderr \
-                --auto --pass-io --user=root "$@"
+        qvm-run --no-color-output --no-color-stderr --pass-io --user root "$@"
     )
 }
 
@@ -122,7 +121,7 @@ format_header_luks1() {
     message "in $HEADER_DVM: running luksFormat on header file"
     (
         direct_tty
-        in_out "$HEADER_DVM" "QUBESRPC splitDmCrypt.FormatHeader+luks1 dom0"
+        in_out --service "$HEADER_DVM" splitDmCrypt.FormatHeader+luks1
     )
 }
 
@@ -130,7 +129,7 @@ header_sh() {
     message "in $HEADER_DVM: opening shell"
     (
         direct_tty
-        in_out "$HEADER_DVM" "QUBESRPC splitDmCrypt.Shell dom0"
+        in_out --service "$HEADER_DVM" splitDmCrypt.Shell
     )
 }
 
@@ -144,8 +143,8 @@ transfer_header_luks1() {
     message "sending header from $DEV_DVM to $HEADER_DVM"
     (
         red_text
-        out       "$DEV_DVM" "QUBESRPC splitDmCrypt.SendHeader+luks1 dom0" |
-        in_out "$HEADER_DVM" "QUBESRPC splitDmCrypt.ReceiveHeader+luks1 dom0"
+        out    --service    "$DEV_DVM" splitDmCrypt.SendHeader+luks1 |
+        in_out --service "$HEADER_DVM" splitDmCrypt.ReceiveHeader+luks1
     )
 }
 
@@ -160,7 +159,7 @@ transfer_keyfile() {
                 printf '%s\0' "$KEYFILE_PATH" |
                 in_out "$KEYFILE_VM" "cd ~user && xargs -0 cat --"
             fi |
-            in_out "$HEADER_DVM" "QUBESRPC splitDmCrypt.ReceiveKeyfile dom0"
+            in_out --service "$HEADER_DVM" splitDmCrypt.ReceiveKeyfile
         )
     fi
 }
@@ -174,8 +173,8 @@ open_luks1() {
         red_text
         (
             direct_tty
-            in_out "$HEADER_DVM" "QUBESRPC splitDmCrypt.SendKey+luks1 dom0"
-        ) | in_out    "$DEV_DVM" "QUBESRPC splitDmCrypt.Map+luks1 dom0"
+            in_out --service "$HEADER_DVM" splitDmCrypt.SendKey+luks1
+        ) | in_out --service    "$DEV_DVM" splitDmCrypt.Map+luks1
     )
 }
 
@@ -226,7 +225,7 @@ double_detach() {
     qvm-block --detach "$dm_dev"
 
     message "in $dev_dvm: unmapping"
-    out "$dev_dvm" "QUBESRPC splitDmCrypt.Unmap dom0"
+    out --service "$dev_dvm" splitDmCrypt.Unmap
 
     message "detaching $BLOCK_DEV"
     qvm-block --detach "$BLOCK_DEV"
@@ -237,17 +236,17 @@ double_detach() {
 
 overwrite_everything_with_random() {
     message "in $DEV_DVM: waiting for entropy pool initialization"
-    out "$DEV_DVM" "QUBESRPC splitDmCrypt.WaitForRandom dom0"
+    out --service "$DEV_DVM" splitDmCrypt.WaitForRandom
 
     message "in $DEV_DVM: mapping with random key"
     out "$DEV_DVM" "$QUBESRPC; splitDmCrypt.SendKey+random |
                                splitDmCrypt.Map"
 
     message "in $DEV_DVM: overwriting"
-    out "$DEV_DVM"  "QUBESRPC splitDmCrypt.ZeroMapped dom0"
+    out --service "$DEV_DVM" splitDmCrypt.ZeroMapped
 
     message "in $DEV_DVM: unmapping"
-    out "$DEV_DVM"  "QUBESRPC splitDmCrypt.Unmap dom0"
+    out --service "$DEV_DVM" splitDmCrypt.Unmap
 
     message "stopping $DEV_DVM"
     qvm-kill "$DEV_DVM"
@@ -258,7 +257,7 @@ change_header_luks1() {
     local mod_header=$2
 
     message "in $HEADER_DVM: waiting for entropy pool initialization"
-    out "$HEADER_DVM" "QUBESRPC splitDmCrypt.WaitForRandom dom0"
+    out --service "$HEADER_DVM" splitDmCrypt.WaitForRandom
 
     $get_header
     ${mod_header:+transfer_keyfile}
@@ -268,13 +267,13 @@ change_header_luks1() {
         message "sending header from $HEADER_DVM to $DEV_DVM"
         (
             red_text
-            out "$HEADER_DVM" "QUBESRPC splitDmCrypt.SendHeader+file dom0" |
-            in_out "$DEV_DVM" "QUBESRPC splitDmCrypt.ReceiveHeader+luks1 dom0"
+            out    --service "$HEADER_DVM" splitDmCrypt.SendHeader+file |
+            in_out --service    "$DEV_DVM" splitDmCrypt.ReceiveHeader+luks1
         )
     fi
 
     message "in $DEV_DVM: writing header to device"
-    out "$DEV_DVM" "QUBESRPC splitDmCrypt.ReplaceHeader+luks1 dom0"
+    out --service "$DEV_DVM" splitDmCrypt.ReplaceHeader+luks1
 
     message "detaching $BLOCK_DEV"
     qvm-block --detach "$BLOCK_DEV"
