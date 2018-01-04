@@ -176,6 +176,8 @@ find_dm_dev() {
 }
 
 attach_decrypted() {
+    local dm_dev
+
     "$@"
 
     if ! dm_dev=$(find_dm_dev "$DEV_DVM"); then
@@ -198,6 +200,7 @@ attach_decrypted() {
 
 double_detach() {
     local dev_dvm
+    local dm_dev
 
     if ! dev_dvm=$(qvm_block_list_device_attached_vm "$BLOCK_DEV"); then
         message "error: could not find device DisposableVM for $BLOCK_DEV"
