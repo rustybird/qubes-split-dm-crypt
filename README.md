@@ -32,14 +32,14 @@ later to read it.** (But see below for caveats.)
 ## Usage
 
 ```
-qvm-block-split --attach|-a [--ro] [<k>] [<dst-vm>] <src-vm>:<device>
-                --detach|-d                         <src-vm>:<device>
+qvm-block-split attach|at|a [--ro] [<k>] [<dst-vm>] <src-vm>:<device>
+                detach|dt|d                         <src-vm>:<device>
 
-                --overwrite-everything=random       <src-vm>:<device>
-                --overwrite-header=random           <src-vm>:<device>
-                --overwrite-header=format   [<k>]   <src-vm>:<device>
-                --overwrite-header=shell    [<k>]   <src-vm>:<device>
-                --modify-header=shell       [<k>]   <src-vm>:<device>
+                overwrite-everything-with-random    <src-vm>:<device>
+                overwrite-header-with-random        <src-vm>:<device>
+                overwrite-header-with-format [<k>]  <src-vm>:<device>
+                overwrite-header-with-shell  [<k>]  <src-vm>:<device>
+                modify-header-with-shell     [<k>]  <src-vm>:<device>
 
 The <dst-vm> argument defaults to yet another DisposableVM.
 <k> stands for an optional --key-file=[<key-vm>:]<file> argument.
@@ -92,7 +92,7 @@ included:
    (e.g. `fedora-26-dvm`), unless it is a StandaloneVM.
 
    Inspect the code, and `sudo make install`; also install `pv` (Pipe
-   Viewer) to be able to run the `--overwrite-everything=random`
+   Viewer) to be able to run the `overwrite-everything-with-random`
    command. Shut down the TemplateVM when finished.
 
 2. Copy `dom0/bin/qvm-block-split` to dom0, e.g. into `~/bin/`, inspect

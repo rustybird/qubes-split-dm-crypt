@@ -289,14 +289,14 @@ usage() {
   qvm-block-split - manage "Split dm-crypt", isolating device-mapper based
   secondary storage encryption and LUKS header processing to DisposableVMs
 
-  Usage: qvm-block-split --attach|-a [--ro] [<k>] [<dst-vm>] <src-vm>:<device>
-                         --detach|-d                         <src-vm>:<device>
+  Usage: qvm-block-split attach|at|a [--ro] [<k>] [<dst-vm>] <src-vm>:<device>
+                         detach|dt|d                         <src-vm>:<device>
 
-                         --overwrite-everything=random       <src-vm>:<device>
-                         --overwrite-header=random           <src-vm>:<device>
-                         --overwrite-header=format   [<k>]   <src-vm>:<device>
-                         --overwrite-header=shell    [<k>]   <src-vm>:<device>
-                         --modify-header=shell       [<k>]   <src-vm>:<device>
+                         overwrite-everything-with-random    <src-vm>:<device>
+                         overwrite-header-with-random        <src-vm>:<device>
+                         overwrite-header-with-format [<k>]  <src-vm>:<device>
+                         overwrite-header-with-shell  [<k>]  <src-vm>:<device>
+                         modify-header-with-shell     [<k>]  <src-vm>:<device>
 
   The <dst-vm> argument defaults to yet another DisposableVM.
   <k> stands for an optional --key-file=[<key-vm>:]<file> argument.
@@ -339,7 +339,7 @@ for arg; do
 done
 
 if [[ ( ${#ARGS[@]} == 3 || ${#READONLY[@]} != 0 ) &&
-      !  ${ARGS[0]} =~ ^--attach|-a$ ]]; then
+      !  ${ARGS[0]} =~ ^attach|at|a$ ]]; then
     usage
 fi
 
@@ -358,25 +358,25 @@ case ${#ARGS[@]} in
 esac
 
 case ${ARGS[0]} in
-    --attach|-a)
+    attach|at|a)
         dev_dvm attach_decrypted header_dvm open_luks1
     ;;
-    --detach|-d)
+    detach|dt|d)
         double_detach
     ;;
-    --overwrite-everything=random)
+    overwrite-everything-with-random)
         dev_dvm overwrite_everything_with_random
     ;;
-    --overwrite-header=random)
+    overwrite-header-with-random)
         dev_dvm change_header_luks1 random_header_luks1
     ;;
-    --overwrite-header=format)
+    overwrite-header-with-format)
         dev_dvm change_header_luks1 random_header_luks1 format_header_luks1
     ;;
-    --overwrite-header=shell)
+    overwrite-header-with-shell)
         dev_dvm change_header_luks1 random_header_luks1 header_sh
     ;;
-    --modify-header=shell)
+    modify-header-with-shell)
         dev_dvm header_dvm change_header_luks1 transfer_header_luks1 header_sh
     ;;
     *)
