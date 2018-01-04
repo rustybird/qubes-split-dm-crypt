@@ -148,7 +148,7 @@ transfer_keyfile() {
                 cat -- "$KEYFILE_PATH"
             else
                 printf '%s\0' "$KEYFILE_PATH" |
-                in_out "$KEYFILE_VM" "cd ~user; xargs -0 cat --"
+                in_out "$KEYFILE_VM" "cd ~user && xargs -0 cat --"
             fi |
             in_out "$HEADER_DVM" "QUBESRPC splitDmCrypt.ReceiveKeyfile dom0"
         )
