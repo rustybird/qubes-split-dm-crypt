@@ -1,4 +1,7 @@
-# _Split dm-crypt_ for Qubes (R3.2)
+# _Split dm-crypt_ for Qubes R3.2
+
+_(For Qubes R4.0 switch to the `master` git branch)_
+
 
 **Isolates device-mapper based secondary storage encryption (i.e. not
 the root filesystem) and LUKS header processing to DisposableVMs.**
