@@ -87,13 +87,14 @@ included:
 
 ## Installation
 
-1. Copy `vm/` to _the TemplateVM_ of a "template for DisposableVMs"
-   (e.g. `fedora-26`) - not to the "template for DisposableVMs" _itself_
+1. Copy `vm/` to _the TemplateVM_ (e.g. `fedora-26`) of a "template for
+   DisposableVMs" - not to the "template for DisposableVMs" _itself_
    (e.g. `fedora-26-dvm`), unless it is a StandaloneVM.
 
-   Inspect the code, and `sudo make install`; also install `pv` (Pipe
-   Viewer) to be able to run the `overwrite-everything-with-random`
-   command. Shut down the TemplateVM when finished.
+   Inspect the code, and `sudo make install`; also install the `pv`
+   (Pipe Viewer) package to be able to run the
+   `overwrite-everything-with-random` command. Shut down the TemplateVM
+   when finished.
 
 2. Copy `dom0/bin/qvm-block-split` to dom0, e.g. into `~/bin/`, inspect
    the code extra carefully, and `chmod +x` the script.
