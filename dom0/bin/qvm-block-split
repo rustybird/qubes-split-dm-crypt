@@ -71,13 +71,10 @@ new_offline_dvm() {
     return 1
 }
 
-# don't barf on EPIPE/SIGPIPE
-qvm_block_list_pipe() { qvm-block --list 2>/dev/null || true; }
-
 qvm_block_list_device_attached_vm() {
-     qvm_block_list_pipe |
-     grep "^$1	.* (attached to '" |
-     cut -d \' -f 2
+     qvm-block list "${1%%:*}" |
+     sed -e "/^$1 .*)$/!d" -e 's/ *([^()]\+)$//' -e 's/.* //' |
+     grep .
 }
 
 
@@ -87,7 +84,7 @@ dev_dvm() {
     local DEV_DVM
     local HEADER_DVM
 
-    if ! qvm_block_list_pipe | grep -q "^$BLOCK_DEV	"; then
+    if ! qvm-block list "${BLOCK_DEV%%:*}" | grep -q "^$BLOCK_DEV "; then
         message "error: could not find block device $BLOCK_DEV"
         exit 1
     fi
@@ -101,7 +98,8 @@ dev_dvm() {
     out "$DEV_DVM" "blockdev-parsing-disabled --start-flagging"
 
     message "attaching $BLOCK_DEV to $DEV_DVM"
-    qvm-block --frontend=xvds --attach $READONLY "$DEV_DVM" "$BLOCK_DEV"
+    qvm-block attach --option frontend-dev=xvds "${READONLY[@]}" \
+                     "$DEV_DVM" "$BLOCK_DEV"
 
     "$@"
 }
@@ -179,9 +177,9 @@ open_luks1() {
 }
 
 find_dm_dev() {
-    qvm_block_list_pipe |
-    grep -m 1 -E "^$1:dm-[0-9]+	split-dm-crypt " |
-    cut -f 1
+    qvm-block list "$1" |
+    grep -m 1 -E "^$1:dm-[0-9]+ +split-dm-crypt( |$)" |
+    cut -f 1 -d " "
 }
 
 attach_decrypted() {
@@ -204,12 +202,13 @@ attach_decrypted() {
     fi
 
     message "attaching $dm_dev to $DEST_VM"
-    qvm-block --attach $READONLY "$DEST_VM" "$dm_dev"
+    qvm-block attach "${READONLY[@]}" "$DEST_VM" "$dm_dev"
 }
 
 double_detach() {
     local dev_dvm
     local dm_dev
+    local dest_vm
 
     if ! dev_dvm=$(qvm_block_list_device_attached_vm "$BLOCK_DEV"); then
         message "error: could not find device DisposableVM for $BLOCK_DEV"
@@ -221,14 +220,16 @@ double_detach() {
         exit 1
     fi
 
-    message "detaching $dm_dev"
-    qvm-block --detach "$dm_dev"
+    if dest_vm=$(qvm_block_list_device_attached_vm "$dm_dev"); then
+        message "detaching $dm_dev from $dest_vm"
+        qvm-block detach "$dest_vm" "$dm_dev"
+    fi
 
     message "in $dev_dvm: unmapping"
     out --service "$dev_dvm" splitDmCrypt.Unmap
 
-    message "detaching $BLOCK_DEV"
-    qvm-block --detach "$BLOCK_DEV"
+    message "detaching $BLOCK_DEV from $dev_dvm"
+    qvm-block detach "$dev_dvm" "$BLOCK_DEV"
 
     message "stopping $dev_dvm"
     qvm-kill "$dev_dvm"
@@ -275,8 +276,8 @@ change_header_luks1() {
     message "in $DEV_DVM: writing header to device"
     out --service "$DEV_DVM" splitDmCrypt.ReplaceHeader+luks1
 
-    message "detaching $BLOCK_DEV"
-    qvm-block --detach "$BLOCK_DEV"
+    message "detaching $BLOCK_DEV from $DEV_DVM"
+    qvm-block detach "$DEV_DVM" "$BLOCK_DEV"
 
     message "stopping $DEV_DVM"
     qvm-kill "$DEV_DVM"
@@ -315,7 +316,7 @@ fi
 ARGS=()
 KEYFILE_VM=
 KEYFILE_PATH=
-READONLY=
+READONLY=()
 for arg; do
     case $arg in
         --key-file=?*)
@@ -329,7 +330,7 @@ for arg; do
             fi
         ;;
         --ro)
-            READONLY=$arg
+            READONLY=( --option read-only=yes )
         ;;
         *)
             ARGS+=( "$arg" )
@@ -337,7 +338,7 @@ for arg; do
     esac
 done
 
-if [[ ( ${#ARGS[@]} == 3 || $READONLY ) &&
+if [[ ( ${#ARGS[@]} == 3 || ${#READONLY[@]} != 0 ) &&
       !  ${ARGS[0]} =~ ^--attach|-a$ ]]; then
     usage
 fi
