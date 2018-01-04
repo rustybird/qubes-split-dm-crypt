@@ -2,7 +2,6 @@
 set -e -o pipefail -o errtrace
 trap 'exit $?' ERR
 
-PATH=$PATH:/usr/lib/qubes
 QUBESRPC='PATH=/usr/local/etc/qubes-rpc:/etc/qubes-rpc:$PATH'
 
 
@@ -46,20 +45,31 @@ in_out() {
 
 out() { in_out "$@" </dev/null; }
 
-dvm_reaper_daemon() {
-    (
-        qvm-run --pass-io "$1" 'kill -s STOP $$' || true
-        qfile-daemon-dvm FINISH "$1"
-    ) </dev/null >/dev/null 2>&1 &
-}
-
 new_offline_dvm() {
+    local template
+    local label
     local dvm
 
-    dvm=$(qfile-daemon-dvm LAUNCH dom0 "" red)
-    dvm_reaper_daemon "$dvm"
-    qvm-prefs --set "$dvm" netvm none
-    echo "$dvm"
+    template=${TEMPLATE_FOR_DISPVMS:-$(qubes-prefs --get default_dispvm)}
+    label=$(qvm-prefs --get "$template" label)
+
+    for try in $(seq 10); do
+        dvm=split-$1-disp$((RANDOM % 10000))
+
+        if qvm-create --class DispVM --template "$template" --label "$label" \
+                      --prop netvm= --prop auto_cleanup=True "$dvm"; then
+            qvm-start --quiet "$dvm"
+            echo "$dvm"
+            return 0
+        else
+            case $? in
+                1) continue ;;
+                *) return $? ;;
+            esac
+        fi
+    done
+
+    return 1
 }
 
 # don't barf on EPIPE/SIGPIPE
@@ -84,7 +94,7 @@ dev_dvm() {
     fi
 
     message "starting device DisposableVM"
-    DEV_DVM=$(new_offline_dvm)
+    DEV_DVM=$(new_offline_dvm dev)
     message "started device DisposableVM $DEV_DVM"
     HEADER_DVM=$DEV_DVM  # for non header_dvm() case
 
@@ -99,7 +109,7 @@ dev_dvm() {
 
 header_dvm() {
     message "starting header DisposableVM"
-    HEADER_DVM=$(new_offline_dvm)
+    HEADER_DVM=$(new_offline_dvm header)
     message "started header DisposableVM $HEADER_DVM"
 
     "$@"
@@ -187,7 +197,7 @@ attach_decrypted() {
 
     if [[ $DEST_VM == \$dispvm ]]; then
         message "starting destination DisposableVM"
-        DEST_VM=$(new_offline_dvm)
+        DEST_VM=$(new_offline_dvm dest)
         message "started destination DisposableVM $DEST_VM"
     else
         message "ensuring destination VM is running"
@@ -297,6 +307,11 @@ END
 
 
 #### main program #############################################################
+
+CONF=/etc/split-dm-crypt.conf
+if [[ -e $CONF ]]; then
+    source "$CONF"
+fi
 
 ARGS=()
 KEYFILE_VM=

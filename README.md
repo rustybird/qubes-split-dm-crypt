@@ -1,6 +1,6 @@
-# _Split dm-crypt_ for Qubes R3.2
+# _Split dm-crypt_ for Qubes R4.0
 
-_(For Qubes R4.0 switch to the `master` git branch)_
+_(For Qubes R3.2 switch to the `release3.2` git branch)_
 
 
 **Isolates device-mapper based secondary storage encryption (i.e. not
@@ -87,13 +87,25 @@ included:
 
 ## Installation
 
-1. Copy `vm/` to the DisposableVM template, inspect the code, and `sudo
-   make install` there; also install the `pv` (Pipe Viewer) package to
-   be able to run the `--overwrite-everything=random` command. Shut down
-   the template when finished.
+1. Copy `vm/` to _the TemplateVM_ of a "template for DisposableVMs"
+   (e.g. `fedora-26`) - not to the "template for DisposableVMs" _itself_
+   (e.g. `fedora-26-dvm`), unless it is a StandaloneVM.
+
+   Inspect the code, and `sudo make install`; also install `pv` (Pipe
+   Viewer) to be able to run the `--overwrite-everything=random`
+   command. Shut down the TemplateVM when finished.
 
 2. Copy `dom0/bin/qvm-block-split` to dom0, e.g. into `~/bin/`, inspect
    the code extra carefully, and `chmod +x` the script.
+
+3. Either make your "template for DisposableVMs" from step 1 the
+   system-wide default:
+
+        qubes-prefs --set default_dispvm fedora-26-dvm
+
+   Or just let _Split dm-crypt_ know what it is:
+
+        echo TEMPLATE_FOR_DISPVMS=fedora-26-dvm >/etc/split-dm-crypt.conf
 
 
 ## Safety warning
