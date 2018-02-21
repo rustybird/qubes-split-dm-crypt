@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e -o pipefail
 
-PATH=/usr/local/etc:/etc source split-dm-crypt.conf
+source /etc/split-dm-crypt.conf
 
 cmd="cryptsetup luksOpen $HEADER_FILE $MAP_NAME"
 [[ ! -e $KEY_FILE ]] || cmd+=" --key-file=$KEY_FILE"

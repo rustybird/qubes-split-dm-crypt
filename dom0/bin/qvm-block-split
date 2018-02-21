@@ -99,7 +99,7 @@ dev_dvm() {
     HEADER_DVM=$DEV_DVM  # for non header_dvm() case
 
     message "in $DEV_DVM: disabling block device content parsing"
-    out "$DEV_DVM" "blockdev-parsing-disabled --start-flagging"
+    out "$DEV_DVM" "PATH=/sbin:/usr/sbin:/usr/local/sbin:\${PATH:-/bin:/usr/bin:/usr/local/bin} blockdev-parsing-disabled --start-flagging"
 
     message "attaching $BLOCK_DEV to $DEV_DVM"
     qvm-block attach --option frontend-dev=xvds "${READONLY[@]}" \
