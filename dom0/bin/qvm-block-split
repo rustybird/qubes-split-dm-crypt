@@ -72,9 +72,9 @@ new_offline_dvm() {
 }
 
 qvm_block_list_device_attached_vm() {
-     qvm-block list "${1%%:*}" |
-     sed -e "/^$1 .*)$/!d" -e 's/ *([^()]\+)$//' -e 's/.* //' |
-     grep .
+    qvm-block list "${1%%:*}" |
+    sed -e "/^$1 .*)$/!d" -e 's/ *([^()]\+)$//' -e 's/.* //' |
+    grep .
 }
 
 
