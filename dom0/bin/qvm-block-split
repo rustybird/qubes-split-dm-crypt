@@ -330,7 +330,7 @@ for arg; do
             fi
         ;;
         --ro)
-            READONLY=( --option read-only=yes )
+            READONLY=( "$arg" )
         ;;
         *)
             ARGS+=( "$arg" )
