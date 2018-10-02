@@ -89,7 +89,8 @@ dev_dvm() {
     HEADER_DVM=$DEV_DVM  # for non header_dvm() case
 
     message "in $DEV_DVM: disabling block device content parsing"
-    out "$DEV_DVM" "blockdev-parsing-disabled --start-flagging"
+    # a udev .rules file piggybacks on this kernel parameter:
+    out "$DEV_DVM" "echo Y >/sys/module/block/parameters/no_part_scan"
 
     message "attaching $BLOCK_DEV to $DEV_DVM"
     qvm-block --frontend=xvds --attach $READONLY "$DEV_DVM" "$BLOCK_DEV"
