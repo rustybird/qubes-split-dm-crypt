@@ -21,7 +21,6 @@ param=/sys/module/block/parameters/no_part_scan
 test $# = 1 || usage
 case $1 in
     -s|--start-flagging)
-        backport-UDEV_DISABLE_PERSISTENT_STORAGE_RULES_FLAG-rule
         echo Y >$param
     ;;
     -q|--quit-flagging)
