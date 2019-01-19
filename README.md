@@ -115,3 +115,9 @@ The code's error handling is strict, and I haven't experienced any data
 loss during development. Nevertheless, this is an early release. Please
 **ensure you have a backup of all drives that are connected to your
 computer.**
+
+
+## Redistribution
+
+_Split dm-crypt_ is permissively licensed, see the LICENSE-ISC file for
+details.
