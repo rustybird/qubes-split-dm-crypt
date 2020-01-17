@@ -85,9 +85,9 @@ included:
 
 ## Installation
 
-1. Copy `vm/` to _the TemplateVM_ (e.g. `fedora-28`) of a "template for
+1. Copy `vm/` to _the TemplateVM_ (e.g. `fedora-xx`) of a "template for
    DisposableVMs" - not to the "template for DisposableVMs" _itself_
-   (e.g. `fedora-28-dvm`), unless it is a StandaloneVM.
+   (e.g. `fedora-xx-dvm`), unless it is a StandaloneVM.
 
    Inspect the code, and `sudo make install`; also install the `pv`
    (Pipe Viewer) package to be able to run the
@@ -100,11 +100,11 @@ included:
 3. Either make your "template for DisposableVMs" from step 1 the
    system-wide default:
 
-        qubes-prefs --set default_dispvm fedora-28-dvm
+        qubes-prefs --set default_dispvm fedora-xx-dvm
 
    Or just let _Split dm-crypt_ know what it is:
 
-        echo TEMPLATE_FOR_DISPVMS=fedora-28-dvm >/etc/split-dm-crypt.conf
+        echo TEMPLATE_FOR_DISPVMS=fedora-xx-dvm >/etc/split-dm-crypt.conf
 
 
 ## Safety warning
