@@ -117,5 +117,5 @@ computer.**
 
 ## Redistribution
 
-_Split dm-crypt_ is permissively licensed, see the LICENSE-ISC file for
-details.
+_Split dm-crypt_ is under public domain equivalent license, see the
+LICENSE-0BSD file for details.
