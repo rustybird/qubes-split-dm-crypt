@@ -2,9 +2,9 @@
 
 
 **Isolates device-mapper based secondary storage encryption (i.e. not
-the root filesystem) and LUKS header processing to DisposableVMs.**
+the root filesystem) and LUKS1 header processing to DisposableVMs.**
 
-Instead of directly attaching an encrypted LUKS partition from a source
+Instead of directly attaching an encrypted LUKS1 partition from a source
 VM such as sys-usb to a destination VM and decrypting it there, it works
 like this:
 
@@ -13,7 +13,7 @@ like this:
    The kernel partition scanners, udev probes, and UDisks handling are
    disabled.
 
-2. From there, the LUKS header is sent to a (short-lived) offline
+2. From there, the LUKS1 header is sent to a (short-lived) offline
    _header DisposableVM_ prompting for the password, and the encryption
    key is sent back to the device DisposableVM, which validates that it
    received an AES-XTS key and creates the dm-crypt mapping.
@@ -49,9 +49,9 @@ included:
 
 - Fully overwrite a device with random data
 
-- Overwrite just the LUKS header with random data
+- Overwrite just the LUKS1 header with random data
 
-- Format a new LUKS device with modern crypto parameters: AES-XTS with
+- Format a new LUKS1 device with modern crypto parameters: AES-XTS with
   256+256 (instead of 128+128) bit keys, SHA512 (instead of SHA1) PBKDF2
   key derivation with 5 (instead of 0.1) seconds iteration time
 
@@ -69,7 +69,7 @@ included:
   patterns, slowly saving some amount of decrypted data to the disk.
 
 - If the source VM/disk is compromised and successfully exploits the
-  header DisposableVM using a malicious LUKS header, a known AES-XTS key
+  header DisposableVM using a malicious LUKS1 header, a known AES-XTS key
   could be sent to the device DisposableVM and used to present malicious
   device content to the destination VM to potentially exploit it as
   well. **Be suspicious if you do not see the expected filesystem data
@@ -77,7 +77,7 @@ included:
   VM.**
 
 - **Don't forget to overwrite your disk with random data before creating
-  a LUKS volume on it.** Otherwise, a compromised destination VM could
+  a LUKS1 volume on it.** Otherwise, a compromised destination VM could
   trivially save decrypted data to the disk in its free space, by
   encoding each bit as an unmodified (still empty or in some other way
   nonrandom-looking) or modified (random-looking) 128 bit AES block.

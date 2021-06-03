@@ -292,7 +292,7 @@ usage() {
     cat >&2 <<END
 
   qvm-block-split - manage "Split dm-crypt", isolating device-mapper based
-  secondary storage encryption and LUKS header processing to DisposableVMs
+  secondary storage encryption and LUKS1 header processing to DisposableVMs
 
   Usage: qvm-block-split attach|at|a [--ro] [<k>] [<dst-vm>] <src-vm>:<device>
                          detach|dt|d                         <src-vm>:<device>
