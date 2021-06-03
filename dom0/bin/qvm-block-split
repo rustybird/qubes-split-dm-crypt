@@ -197,7 +197,7 @@ attach_decrypted() {
         exit 1
     fi
 
-    if [[ $DEST_VM == \$dispvm ]]; then
+    if [[ $DEST_VM == [@$]dispvm ]]; then
         message "starting destination DisposableVM"
         DEST_VM=$(new_offline_dvm dest)
         message "started destination DisposableVM $DEST_VM"
@@ -350,7 +350,7 @@ fi
 
 case ${#ARGS[@]} in
     2)
-        DEST_VM=\$dispvm
+        DEST_VM=@dispvm
         BLOCK_DEV=${ARGS[1]}
     ;;
     3)
