@@ -85,9 +85,9 @@ included:
 
 ## Installation
 
-1. Copy `vm/` to _the TemplateVM_ (e.g. `fedora-XX`) of a "template for
-   DisposableVMs" - not to the "template for DisposableVMs" _itself_
-   (e.g. `fedora-XX-dvm`), unless it is a StandaloneVM.
+1. Copy `vm/` to a DisposableVM Template's _TemplateVM_ (e.g.
+   `fedora-XX`) - not to the DisposableVM Template _itself_ (e.g.
+   `fedora-XX-dvm`).
 
    Inspect the code, and `sudo make install`; also install the `pv`
    (Pipe Viewer) package to be able to run the
@@ -97,8 +97,8 @@ included:
 2. Copy `dom0/bin/qvm-block-split` to dom0, e.g. into `~/bin/`, inspect
    the code extra carefully, and `chmod +x` the script.
 
-3. Either make your "template for DisposableVMs" from step 1 the
-   system-wide default:
+3. Either make your DisposableVM Template from step 1 the system-wide
+   default:
 
         qubes-prefs default_dispvm fedora-XX-dvm
 
