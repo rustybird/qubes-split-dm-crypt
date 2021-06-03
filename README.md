@@ -69,12 +69,12 @@ included:
   patterns, slowly saving some amount of decrypted data to the disk.
 
 - If the source VM/disk is compromised and successfully exploits the
-  header DisposableVM using a malicious LUKS1 header, a known AES-XTS key
-  could be sent to the device DisposableVM and used to present malicious
-  device content to the destination VM to potentially exploit it as
-  well. **Be suspicious if you do not see the expected filesystem data
-  in the destination VM. Or simply use a DisposableVM as the destination
-  VM.**
+  header DisposableVM using a malicious LUKS1 header, a known AES-XTS
+  key could be sent to the device DisposableVM and used to present
+  malicious device content to the destination VM to potentially exploit
+  it as well. **Be suspicious if you do not see the expected filesystem
+  data in the destination VM. Or simply use a DisposableVM as the
+  destination VM.**
 
 - **Don't forget to overwrite your disk with random data before creating
   a LUKS1 volume on it.** Otherwise, a compromised destination VM could
