@@ -8,10 +8,10 @@ Instead of directly attaching an encrypted LUKS partition from a source
 VM such as sys-usb to a destination VM and decrypting it there, it works
 like this:
 
-1. The encrypted partition is attached from the source VM to a
-   (long-lived) offline _device DisposableVM_ configured not to parse
-   its content in any way: The kernel partition scanners, udev probes,
-   and UDisks handling are disabled.
+1. The encrypted partition is attached from the source VM to an offline
+   _device DisposableVM_ configured not to parse its content in any way:
+   The kernel partition scanners, udev probes, and UDisks handling are
+   disabled.
 
 2. From there, the LUKS header is sent to a (short-lived) offline
    _header DisposableVM_ prompting for the password, and the encryption
