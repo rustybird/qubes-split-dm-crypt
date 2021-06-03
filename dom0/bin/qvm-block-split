@@ -49,8 +49,8 @@ new_offline_dvm() {
     local label
     local dvm
 
-    template=${TEMPLATE_FOR_DISPVMS:-$(qubes-prefs --get default_dispvm)}
-    label=$(qvm-prefs --get "$template" label)
+    template=${TEMPLATE_FOR_DISPVMS:-$(qubes-prefs default_dispvm)}
+    label=$(qvm-prefs "$template" label)
 
     for try in $(seq 10); do
         dvm=split-$1-disp$((RANDOM % 10000))

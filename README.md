@@ -100,7 +100,7 @@ included:
 3. Either make your "template for DisposableVMs" from step 1 the
    system-wide default:
 
-        qubes-prefs --set default_dispvm fedora-XX-dvm
+        qubes-prefs default_dispvm fedora-XX-dvm
 
    Or just let _Split dm-crypt_ know what it is:
 
