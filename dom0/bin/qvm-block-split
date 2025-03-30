@@ -2,9 +2,6 @@
 set -e -o pipefail -o errtrace
 trap 'exit $?' ERR
 
-QUBESRPC='PATH=/usr/local/etc/qubes-rpc:/etc/qubes-rpc:$PATH'
-
-
 #### general functions ########################################################
 
 message() { echo "${0##*/}: $1" >&2; }
@@ -52,7 +49,7 @@ new_offline_dvm() {
     template=${TEMPLATE_FOR_DISPVMS:-$(qubes-prefs default_dispvm)}
     label=$(qvm-prefs "$template" label)
 
-    for try in $(seq 10); do
+    for _try in $(seq 10); do
         dvm=split-$1-disp$((RANDOM % 10000))
 
         if qvm-create --class DispVM --template "$template" --label "$label" \
@@ -120,11 +117,11 @@ header_dvm() {
     qvm-kill "$HEADER_DVM"
 }
 
-format_header_luks1() {
+format_header() {
     message "in $HEADER_DVM: running luksFormat on header file"
     (
         direct_tty
-        in_out --service "$HEADER_DVM" splitDmCrypt.FormatHeader+luks1
+        in_out --service "$HEADER_DVM" splitDmCrypt.FormatHeader+"$TYPE"
     )
 }
 
@@ -136,18 +133,19 @@ header_sh() {
     )
 }
 
-random_header_luks1() {
+random_header() {
     message "in $HEADER_DVM: generating random header"
-    out "$HEADER_DVM" "$QUBESRPC; splitDmCrypt.SendHeader+random |
-                                  splitDmCrypt.ReceiveHeader+luks1"
+    fake_rpc="PATH=/usr/local/etc/qubes-rpc:/etc/qubes-rpc:\$PATH"
+    fake_rpc+=" splitDmCrypt.ReceiveHeader $TYPE </dev/random"
+    out "$HEADER_DVM" "$fake_rpc"
 }
 
-transfer_header_luks1() {
+transfer_header() {
     message "sending header from $DEV_DVM to $HEADER_DVM"
     (
         red_text
-        out    --service    "$DEV_DVM" splitDmCrypt.SendHeader+luks1 |
-        in_out --service "$HEADER_DVM" splitDmCrypt.ReceiveHeader+luks1
+        out    --service    "$DEV_DVM" splitDmCrypt.SendHeader+"$TYPE" |
+        in_out --service "$HEADER_DVM" splitDmCrypt.ReceiveHeader+"$TYPE"
     )
 }
 
@@ -167,8 +165,8 @@ transfer_keyfile() {
     fi
 }
 
-open_luks1() {
-    transfer_header_luks1
+open() {
+    transfer_header
     transfer_keyfile
 
     message "sending key from $HEADER_DVM to $DEV_DVM"
@@ -176,8 +174,8 @@ open_luks1() {
         red_text
         (
             direct_tty
-            in_out --service "$HEADER_DVM" splitDmCrypt.SendKey+luks1
-        ) | in_out --service    "$DEV_DVM" splitDmCrypt.Map+luks1
+            in_out --service "$HEADER_DVM" splitDmCrypt.SendKey+"$TYPE"
+        ) | in_out --service    "$DEV_DVM" splitDmCrypt.Map+"$TYPE"
     )
 }
 
@@ -241,45 +239,32 @@ double_detach() {
 }
 
 overwrite_everything_with_random() {
-    message "in $DEV_DVM: waiting for entropy pool initialization"
-    out --service "$DEV_DVM" splitDmCrypt.WaitForRandom
-
-    message "in $DEV_DVM: mapping with random key"
-    out "$DEV_DVM" "$QUBESRPC; splitDmCrypt.SendKey+random |
-                               splitDmCrypt.Map"
-
     message "in $DEV_DVM: overwriting"
-    out --service "$DEV_DVM" splitDmCrypt.ZeroMapped
-
-    message "in $DEV_DVM: unmapping"
-    out --service "$DEV_DVM" splitDmCrypt.Unmap
+    out --service "$DEV_DVM" splitDmCrypt.OverwriteEverythingWithRandom
 
     message "stopping $DEV_DVM"
     qvm-kill "$DEV_DVM"
 }
 
-change_header_luks1() {
+change_header() {
     local get_header=$1
     local mod_header=$2
-
-    message "in $HEADER_DVM: waiting for entropy pool initialization"
-    out --service "$HEADER_DVM" splitDmCrypt.WaitForRandom
 
     $get_header
     ${mod_header:+transfer_keyfile}
     $mod_header
 
-    if [[ $HEADER_DVM != $DEV_DVM ]]; then
+    if [[ $HEADER_DVM != "$DEV_DVM" ]]; then
         message "sending header from $HEADER_DVM to $DEV_DVM"
         (
             red_text
             out    --service "$HEADER_DVM" splitDmCrypt.SendHeader+file |
-            in_out --service    "$DEV_DVM" splitDmCrypt.ReceiveHeader+luks1
+            in_out --service    "$DEV_DVM" splitDmCrypt.ReceiveHeader+"$TYPE"
         )
     fi
 
     message "in $DEV_DVM: writing header to device"
-    out --service "$DEV_DVM" splitDmCrypt.ReplaceHeader+luks1
+    out --service "$DEV_DVM" splitDmCrypt.ReplaceHeader+"$TYPE"
 
     message "detaching $BLOCK_DEV from $DEV_DVM"
     qvm-block detach "$DEV_DVM" "$BLOCK_DEV"
@@ -292,19 +277,21 @@ usage() {
     cat >&2 <<END
 
   qvm-block-split - manage "Split dm-crypt", isolating device-mapper based
-  secondary storage encryption and LUKS1 header processing to DisposableVMs
+  secondary storage encryption and LUKS header processing to DisposableVMs
 
-  Usage: qvm-block-split attach|at|a [--ro] [<k>] [<dst-vm>] <src-vm>:<device>
-                         detach|dt|d                         <src-vm>:<device>
+  Usage: qvm-block-split attach|at|a [--ro] [<opt>...]     [<dst>] <src>:<dev>
+                         detach|dt|d                               <src>:<dev>
 
-                         overwrite-everything-with-random    <src-vm>:<device>
-                         overwrite-header-with-random        <src-vm>:<device>
-                         overwrite-header-with-format [<k>]  <src-vm>:<device>
-                         overwrite-header-with-shell  [<k>]  <src-vm>:<device>
-                         modify-header-with-shell     [<k>]  <src-vm>:<device>
+                         overwrite-everything-with-random          <src>:<dev>
+                         overwrite-header-with-random              <src>:<dev>
+                         overwrite-header-with-format [<opt>...]   <src>:<dev>
+                         overwrite-header-with-shell  [<opt>...]   <src>:<dev>
+                         modify-header-with-shell     [<opt>...]   <src>:<dev>
 
-  The <dst-vm> argument defaults to yet another DisposableVM.
-  <k> stands for an optional --key-file=[<key-vm>:]<file> argument.
+  The <dst> argument defaults to yet another DisposableVM.
+
+  <opt> can be: --key-file=[<vm>:]<path>
+                --type=luks1 to override the default --type=luks2
 
 END
     exit 1
@@ -319,11 +306,16 @@ if [[ -e $CONF ]]; then
 fi
 
 ARGS=()
+TYPE=luks2
 KEYFILE_VM=
 KEYFILE_PATH=
 READONLY=()
 for arg; do
     case $arg in
+        --type=*)
+            TYPE=${arg#*=}
+            [[ $TYPE == luks[12] ]] || usage
+        ;;
         --key-file=?*)
             val=${arg#*=}
             if [[ $val == [!/.]*:* ]]; then
@@ -364,7 +356,7 @@ esac
 
 case ${ARGS[0]} in
     attach|at|a)
-        dev_dvm attach_decrypted header_dvm open_luks1
+        dev_dvm attach_decrypted header_dvm open
     ;;
     detach|dt|d)
         double_detach
@@ -373,16 +365,16 @@ case ${ARGS[0]} in
         dev_dvm overwrite_everything_with_random
     ;;
     overwrite-header-with-random)
-        dev_dvm change_header_luks1 random_header_luks1
+        dev_dvm change_header random_header
     ;;
     overwrite-header-with-format)
-        dev_dvm change_header_luks1 random_header_luks1 format_header_luks1
+        dev_dvm change_header random_header format_header
     ;;
     overwrite-header-with-shell)
-        dev_dvm change_header_luks1 random_header_luks1 header_sh
+        dev_dvm change_header random_header header_sh
     ;;
     modify-header-with-shell)
-        dev_dvm header_dvm change_header_luks1 transfer_header_luks1 header_sh
+        dev_dvm header_dvm change_header transfer_header header_sh
     ;;
     *)
         usage

@@ -1,0 +1,9 @@
+#!/bin/bash
+set -e -o pipefail
+
+PATH=/usr/local/etc:/etc source split-dm-crypt.conf
+
+[[ ${MAX_HEADER_BYTES[$1]} -le $(( ${DATA_OFFSET_512B[$1]} * 512 )) ]]
+
+dd if="$HEADER_FILE" of="$DEVICE" count="${MAX_HEADER_BYTES[$1]}" bs=1M \
+   iflag=count_bytes,fullblock conv=notrunc,nocreat,fdatasync status=progress

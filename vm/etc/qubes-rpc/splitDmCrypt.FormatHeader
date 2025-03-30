@@ -3,7 +3,7 @@ set -e -o pipefail
 
 PATH=/usr/local/etc:/etc source split-dm-crypt.conf
 
-cmd="cryptsetup --type=luks1 $LUKS1_FORMAT_OPTIONS luksFormat $HEADER_FILE"
+cmd="cryptsetup --use-random --type=$1 ${FORMAT_OPTIONS[$1]} luksFormat $HEADER_FILE"
 [[ ! -e $KEY_FILE ]] || cmd+=" $KEY_FILE"
 
 script --quiet --return --command "$cmd" /dev/null

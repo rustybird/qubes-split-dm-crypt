@@ -7,21 +7,22 @@ message() { echo "${0##*/}: $1" >&2; }
 
 
 # accept AES-XTS keys with 128+128 or 256+256 bits (= 1*64 or 2*64 hex chars)
+# or Adiantum keys with 256 bits (= 64 hex chars)
 
 good_response=$(
     export LC_ALL=C
 
     head -c 200 |
-    grep -m 1 -Ex "aes-xts-plain64 [0-9a-f]{64}{1,2} ${ALLOWED_OFFSET-0}"
+    grep -m 1 -Ex "(aes-xts-plain64 [0-9a-f]{64}{1,2}|xchacha(12|20),aes-adiantum-plain64 [0-9a-f]{64}) ${DATA_OFFSET_512B[$1]}( sector_size:4096)?"
 ) || {
-    message "error: did not receive acceptable cipher/key/offset"
+    message "error: did not receive acceptable cipher/key/offset/sector_size"
     exit 1
 }
 
-read cipher key offset_blocks <<<$good_response
-[[ ${#key} == 128 ]] || message "warning: short key is not post-quantum secure"
-device_blocks=$(blockdev --getsize "$DEVICE")
+IFS=' ' read -r cipher key offset_blocks sector_size_param <<<"$good_response"
+[[ ${#key} == 128 || $cipher != aes-xts-plain64 ]] || message "warning: short key is not post-quantum secure"
+device_blocks=$(blockdev --getsz "$DEVICE")
 mapped_blocks=$(( device_blocks - offset_blocks ))
-table="0 $mapped_blocks crypt $cipher $key 0 $DEVICE $offset_blocks"
+table="0 $mapped_blocks crypt $cipher $key 0 $DEVICE $offset_blocks${sector_size_param:+ 1 $sector_size_param}"
 
 dmsetup create --table "$table" -- "$MAP_NAME"

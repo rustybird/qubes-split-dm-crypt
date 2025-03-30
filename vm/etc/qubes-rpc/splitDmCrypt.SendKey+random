@@ -1,9 +1,0 @@
-#!/usr/bin/python3
-
-import binascii
-
-cipher = "aes-xts-plain64"
-key = binascii.hexlify(open("/dev/urandom", "rb").read(64)).decode("ascii")
-offset = "0"
-
-print(cipher, key, offset)

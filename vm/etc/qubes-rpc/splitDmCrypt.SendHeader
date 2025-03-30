@@ -3,5 +3,4 @@ set -e -o pipefail
 
 PATH=/usr/local/etc:/etc source split-dm-crypt.conf
 
-[[ -e /dev/mapper/$MAP_NAME ]]
-pv -pterabfS /dev/zero >/dev/mapper/"$MAP_NAME"
+head -c "${MAX_HEADER_BYTES[$1]}" "$DEVICE"

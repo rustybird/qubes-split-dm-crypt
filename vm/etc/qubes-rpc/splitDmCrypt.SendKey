@@ -1,0 +1,16 @@
+#!/bin/bash
+set -e -o pipefail
+
+PATH=/usr/local/etc:/etc source split-dm-crypt.conf
+
+cmd="cryptsetup --type=${1?} --disable-keyring open $HEADER_FILE $MAP_NAME"
+[[ ! -e $KEY_FILE ]] || cmd+=" --key-file=$KEY_FILE"
+
+script --quiet --return --command "$cmd" /dev/null >&2
+
+IFS=' '
+read -r -a table < <(dmsetup table --showkeys "$MAP_NAME")
+wait $!
+out=( "${table[3]}" "${table[4]}" "${table[7]}" )
+for p in "${table[@]:9}"; do [[ $p != sector_size:* ]] || out+=( "$p" ); done
+printf '%s\n' "${out[*]}"

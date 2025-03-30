@@ -8,11 +8,11 @@ message() { echo "${0##*/}: $1" >&2; }
 mkdir -p "$TEMP_DIR"
 temp_file=$(mktemp -p "$TEMP_DIR")
 
-head -c "$LUKS1_MAX_HEADER_BYTES" >"$temp_file"
+head -c "${MAX_HEADER_BYTES[$1]}" >"$temp_file"
 
 temp_file_size=$(stat -c %s "$temp_file")
-if [[ $temp_file_size != $LUKS1_MAX_HEADER_BYTES ]]; then
-    message "error: received wrong sized header: $temp_file_size bytes"
+if [[ $temp_file_size != "${MAX_HEADER_BYTES[$1]}" ]]; then
+    message "error: received truncated header: $temp_file_size bytes"
     exit 1
 fi
 
