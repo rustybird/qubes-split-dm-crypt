@@ -87,12 +87,11 @@ included:
 
 ## Installation
 
-1. Copy `vm/` to a DisposableVM Template's _TemplateVM_ (e.g.
-   `fedora-XX`) - not to the DisposableVM Template _itself_ (e.g.
-   `fedora-XX-dvm`).
+1. Copy `vm/` to a DisposableVM Template (e.g. fedora-XX-dvm) or to its
+   TemplateVM (e.g. fedora-XX).
 
-   Inspect the code, and `sudo make install`. Shut down the TemplateVM
-   when finished.
+   Inspect the code, and `sudo make install`. Shut down the VM when
+   finished.
 
 2. Copy `dom0/bin/qvm-block-split` to dom0, e.g. into `~/bin/`, inspect
    the code extra carefully, and `chmod +x` the script.
