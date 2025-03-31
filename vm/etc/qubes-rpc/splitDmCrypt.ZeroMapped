@@ -3,7 +3,7 @@ set -e -o pipefail
 
 PATH=/usr/local/etc:/etc source split-dm-crypt.conf
 
-device_bytes=$(blockdev --getsize64 "$DEVICE")
+map_bytes=$(blockdev --getsize64 /dev/mapper/"$MAP_NAME")
 
-dd if=/dev/random of="$DEVICE" count="$device_bytes" bs=1M \
+dd if=/dev/zero of=/dev/mapper/"$MAP_NAME" count="$map_bytes" bs=1M \
    iflag=count_bytes,fullblock conv=notrunc,nocreat,fdatasync status=progress

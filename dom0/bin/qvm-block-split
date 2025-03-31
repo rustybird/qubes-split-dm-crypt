@@ -240,8 +240,15 @@ double_detach() {
 }
 
 overwrite_everything_with_random() {
+    message "in $DEV_DVM: mapping with random key"
+    out "$DEV_DVM" "$FAKERPC; splitDmCrypt.SendKey+random |
+                              splitDmCrypt.Map nohdr"
+
     message "in $DEV_DVM: overwriting"
-    out --service "$DEV_DVM" splitDmCrypt.OverwriteEverythingWithRandom
+    out --service "$DEV_DVM" splitDmCrypt.ZeroMapped
+
+    message "in $DEV_DVM: unmapping"
+    out --service "$DEV_DVM" splitDmCrypt.Unmap
 
     message "stopping $DEV_DVM"
     qvm-kill "$DEV_DVM"

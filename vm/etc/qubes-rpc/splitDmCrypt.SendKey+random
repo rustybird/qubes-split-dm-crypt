@@ -1,0 +1,10 @@
+#!/usr/bin/python3
+
+import binascii
+import os
+
+cipher = "aes-xts-plain64"
+key = binascii.hexlify(os.getrandom(64)).decode("ascii")
+offset = "0"
+
+print(cipher, key, offset)
