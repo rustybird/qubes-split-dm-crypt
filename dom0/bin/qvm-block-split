@@ -54,6 +54,7 @@ new_offline_dvm() {
 
     for _try in $(seq 10); do
         dvm=split-$1-disp$((RANDOM % 10000))
+        message "launching $dvm"
 
         if qvm-create --class DispVM --template "$template" --label "$label" \
                       --prop netvm= --prop auto_cleanup=True "$dvm"; then
@@ -93,9 +94,7 @@ dev_dvm() {
         exit 1
     fi
 
-    message "starting device DisposableVM"
     DEV_DVM=$(new_offline_dvm dev)
-    message "started device DisposableVM $DEV_DVM"
     HEADER_DVM=$DEV_DVM  # for non header_dvm() case
 
     message "in $DEV_DVM: disabling block device content parsing"
@@ -110,9 +109,7 @@ dev_dvm() {
 }
 
 header_dvm() {
-    message "starting header DisposableVM"
     HEADER_DVM=$(new_offline_dvm header)
-    message "started header DisposableVM $HEADER_DVM"
 
     "$@"
 
@@ -197,11 +194,9 @@ attach_decrypted() {
     fi
 
     if [[ $DEST_VM == [@$]dispvm ]]; then
-        message "starting destination DisposableVM"
         DEST_VM=$(new_offline_dvm dest)
-        message "started destination DisposableVM $DEST_VM"
     else
-        message "ensuring destination VM is running"
+        message "ensuring $DEST_VM is running"
         qvm-start --skip-if-running "$DEST_VM"
     fi
 
