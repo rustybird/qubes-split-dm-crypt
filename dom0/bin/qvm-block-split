@@ -44,22 +44,22 @@ in_out() {
 
 out() { in_out "$@" </dev/null; }
 
-new_offline_dvm() {
+new_offline_disp() {
     local template
     local label
-    local dvm
+    local disp
 
     template=${TEMPLATE_FOR_DISPVMS:-$(qubes-prefs default_dispvm)}
     label=$(qvm-prefs "$template" label)
 
     for _try in $(seq 10); do
-        dvm=dm-$1-disp$((RANDOM % 10000))
-        message "launching $dvm"
+        disp=dm-$1-disp$((RANDOM % 10000))
+        message "launching $disp"
 
         if qvm-create --class DispVM --template "$template" --label "$label" \
-                      --prop netvm= --prop auto_cleanup=True "$dvm"; then
-            qvm-start "$dvm"
-            echo "$dvm"
+                      --prop netvm= --prop auto_cleanup=True "$disp"; then
+            qvm-start "$disp"
+            echo "$disp"
             return 0
         else
             case $? in
@@ -85,71 +85,71 @@ qvm_block_list_device_attached_vm() {
 
 #### Split dm-crypt functions #################################################
 
-dev_dvm() {
-    local DEV_DVM
-    local HEADER_DVM
+dev_disp() {
+    local DEV_DISP
+    local HEADER_DISP
 
     if ! qvm_block_list_retry | grep -q "^$BLOCK_DEV "; then
         message "error: could not find block device $BLOCK_DEV"
         exit 1
     fi
 
-    DEV_DVM=$(new_offline_dvm device)
-    HEADER_DVM=$DEV_DVM  # for non header_dvm() case
+    DEV_DISP=$(new_offline_disp device)
+    HEADER_DISP=$DEV_DISP  # for non header_disp() case
 
-    message "in $DEV_DVM: disabling block device content parsing"
+    message "in $DEV_DISP: disabling block device content parsing"
     # a udev .rules file piggybacks on this kernel parameter:
-    out "$DEV_DVM" "echo Y >/sys/module/block/parameters/no_part_scan"
+    out "$DEV_DISP" "echo Y >/sys/module/block/parameters/no_part_scan"
 
-    message "attaching $BLOCK_DEV to $DEV_DVM"
+    message "attaching $BLOCK_DEV to $DEV_DISP"
     qvm-block attach --option frontend-dev=xvds "${READONLY[@]}" \
-                     "$DEV_DVM" "$BLOCK_DEV"
+                     "$DEV_DISP" "$BLOCK_DEV"
 
     "$@"
 }
 
-header_dvm() {
-    HEADER_DVM=$(new_offline_dvm header)
+header_disp() {
+    HEADER_DISP=$(new_offline_disp header)
 
     "$@"
 
-    message "stopping $HEADER_DVM"
-    qvm-kill "$HEADER_DVM"
+    message "stopping $HEADER_DISP"
+    qvm-kill "$HEADER_DISP"
 }
 
 format_header() {
-    message "in $HEADER_DVM: running luksFormat on header file"
+    message "in $HEADER_DISP: running luksFormat on header file"
     (
         direct_tty
-        in_out --service "$HEADER_DVM" splitDmCrypt.FormatHeader+"$TYPE"
+        in_out --service "$HEADER_DISP" splitDmCrypt.FormatHeader+"$TYPE"
     )
 }
 
 header_sh() {
-    message "in $HEADER_DVM: opening shell"
+    message "in $HEADER_DISP: opening shell"
     (
         direct_tty
-        in_out --service "$HEADER_DVM" splitDmCrypt.Shell
+        in_out --service "$HEADER_DISP" splitDmCrypt.Shell
     )
 }
 
 random_header() {
-    message "in $HEADER_DVM: generating random header"
-    out "$HEADER_DVM" "$FAKERPC splitDmCrypt.ReceiveHeader $TYPE </dev/random"
+    message "in $HEADER_DISP: generating random header"
+    out "$HEADER_DISP" "$FAKERPC splitDmCrypt.ReceiveHeader $TYPE </dev/random"
 }
 
 transfer_header() {
-    message "sending header from $DEV_DVM to $HEADER_DVM"
+    message "sending header from $DEV_DISP to $HEADER_DISP"
     (
         red_text
-        out    --service    "$DEV_DVM" splitDmCrypt.SendHeader+"$TYPE" |
-        in_out --service "$HEADER_DVM" splitDmCrypt.ReceiveHeader+"$TYPE"
+        out    --service    "$DEV_DISP" splitDmCrypt.SendHeader+"$TYPE" |
+        in_out --service "$HEADER_DISP" splitDmCrypt.ReceiveHeader+"$TYPE"
     )
 }
 
 transfer_keyfile() {
     if [[ $KEYFILE_PATH ]]; then
-        message "sending key file from $KEYFILE_VM to $HEADER_DVM"
+        message "sending key file from $KEYFILE_VM to $HEADER_DISP"
         (
             red_text
             if [[ $KEYFILE_VM == dom0 ]]; then
@@ -158,7 +158,7 @@ transfer_keyfile() {
                 printf '%s\0' "$KEYFILE_PATH" |
                 in_out "$KEYFILE_VM" "cd ~user && xargs -0 cat --"
             fi |
-            in_out --service "$HEADER_DVM" splitDmCrypt.ReceiveKeyfile
+            in_out --service "$HEADER_DISP" splitDmCrypt.ReceiveKeyfile
         )
     fi
 }
@@ -167,13 +167,13 @@ open() {
     transfer_header
     transfer_keyfile
 
-    message "sending key from $HEADER_DVM to $DEV_DVM"
+    message "sending key from $HEADER_DISP to $DEV_DISP"
     (
         red_text
         (
             direct_tty
-            in_out --service "$HEADER_DVM" splitDmCrypt.SendKey+"$TYPE"
-        ) | in_out --service    "$DEV_DVM" splitDmCrypt.Map+"$TYPE"
+            in_out --service "$HEADER_DISP" splitDmCrypt.SendKey+"$TYPE"
+        ) | in_out --service    "$DEV_DISP" splitDmCrypt.Map+"$TYPE"
     )
 }
 
@@ -188,13 +188,13 @@ attach_decrypted() {
 
     "$@"
 
-    if ! dm_dev=$(find_dm_dev "$DEV_DVM"); then
-        message "error: could not find device-mapper device in $DEV_DVM"
+    if ! dm_dev=$(find_dm_dev "$DEV_DISP"); then
+        message "error: could not find device-mapper device in $DEV_DISP"
         exit 1
     fi
 
     if [[ $DEST_VM == [@$]dispvm ]]; then
-        DEST_VM=$(new_offline_dvm destination)
+        DEST_VM=$(new_offline_disp destination)
     else
         message "ensuring $DEST_VM is running"
         qvm-start --skip-if-running "$DEST_VM"
@@ -205,17 +205,17 @@ attach_decrypted() {
 }
 
 double_detach() {
-    local dev_dvm
+    local dev_disp
     local dm_dev
     local dest_vm
 
-    if ! dev_dvm=$(qvm_block_list_device_attached_vm "$BLOCK_DEV"); then
+    if ! dev_disp=$(qvm_block_list_device_attached_vm "$BLOCK_DEV"); then
         message "error: could not find device DisposableVM for $BLOCK_DEV"
         exit 1
     fi
 
-    if ! dm_dev=$(find_dm_dev "$dev_dvm"); then
-        message "error: could not find device-mapper device in $dev_dvm"
+    if ! dm_dev=$(find_dm_dev "$dev_disp"); then
+        message "error: could not find device-mapper device in $dev_disp"
         exit 1
     fi
 
@@ -224,29 +224,29 @@ double_detach() {
         qvm-block detach "$dest_vm" "$dm_dev"
     fi
 
-    message "in $dev_dvm: unmapping"
-    out --service "$dev_dvm" splitDmCrypt.Unmap
+    message "in $dev_disp: unmapping"
+    out --service "$dev_disp" splitDmCrypt.Unmap
 
-    message "detaching $BLOCK_DEV from $dev_dvm"
-    qvm-block detach "$dev_dvm" "$BLOCK_DEV"
+    message "detaching $BLOCK_DEV from $dev_disp"
+    qvm-block detach "$dev_disp" "$BLOCK_DEV"
 
-    message "stopping $dev_dvm"
-    qvm-kill "$dev_dvm"
+    message "stopping $dev_disp"
+    qvm-kill "$dev_disp"
 }
 
 overwrite_everything_with_random() {
-    message "in $DEV_DVM: mapping with random key"
-    out "$DEV_DVM" "$FAKERPC; splitDmCrypt.SendKey+random |
-                              splitDmCrypt.Map nohdr"
+    message "in $DEV_DISP: mapping with random key"
+    out "$DEV_DISP" "$FAKERPC; splitDmCrypt.SendKey+random |
+                               splitDmCrypt.Map nohdr"
 
-    message "in $DEV_DVM: overwriting"
-    out --service "$DEV_DVM" splitDmCrypt.ZeroMapped
+    message "in $DEV_DISP: overwriting"
+    out --service "$DEV_DISP" splitDmCrypt.ZeroMapped
 
-    message "in $DEV_DVM: unmapping"
-    out --service "$DEV_DVM" splitDmCrypt.Unmap
+    message "in $DEV_DISP: unmapping"
+    out --service "$DEV_DISP" splitDmCrypt.Unmap
 
-    message "stopping $DEV_DVM"
-    qvm-kill "$DEV_DVM"
+    message "stopping $DEV_DISP"
+    qvm-kill "$DEV_DISP"
 }
 
 change_header() {
@@ -257,23 +257,23 @@ change_header() {
     ${mod_header:+transfer_keyfile}
     $mod_header
 
-    if [[ $HEADER_DVM != "$DEV_DVM" ]]; then
-        message "sending header from $HEADER_DVM to $DEV_DVM"
+    if [[ $HEADER_DISP != "$DEV_DISP" ]]; then
+        message "sending header from $HEADER_DISP to $DEV_DISP"
         (
             red_text
-            out    --service "$HEADER_DVM" splitDmCrypt.SendHeader+file |
-            in_out --service    "$DEV_DVM" splitDmCrypt.ReceiveHeader+"$TYPE"
+            out    --service "$HEADER_DISP" splitDmCrypt.SendHeader+file |
+            in_out --service    "$DEV_DISP" splitDmCrypt.ReceiveHeader+"$TYPE"
         )
     fi
 
-    message "in $DEV_DVM: writing header to device"
-    out --service "$DEV_DVM" splitDmCrypt.ReplaceHeader+"$TYPE"
+    message "in $DEV_DISP: writing header to device"
+    out --service "$DEV_DISP" splitDmCrypt.ReplaceHeader+"$TYPE"
 
-    message "detaching $BLOCK_DEV from $DEV_DVM"
-    qvm-block detach "$DEV_DVM" "$BLOCK_DEV"
+    message "detaching $BLOCK_DEV from $DEV_DISP"
+    qvm-block detach "$DEV_DISP" "$BLOCK_DEV"
 
-    message "stopping $DEV_DVM"
-    qvm-kill "$DEV_DVM"
+    message "stopping $DEV_DISP"
+    qvm-kill "$DEV_DISP"
 }
 
 usage() {
@@ -359,25 +359,25 @@ esac
 
 case ${ARGS[0]} in
     attach|at|a)
-        dev_dvm attach_decrypted header_dvm open
+        dev_disp attach_decrypted header_disp open
     ;;
     detach|dt|d)
         double_detach
     ;;
     overwrite-everything-with-random)
-        dev_dvm overwrite_everything_with_random
+        dev_disp overwrite_everything_with_random
     ;;
     overwrite-header-with-random)
-        dev_dvm change_header random_header
+        dev_disp change_header random_header
     ;;
     overwrite-header-with-format)
-        dev_dvm change_header random_header format_header
+        dev_disp change_header random_header format_header
     ;;
     overwrite-header-with-shell)
-        dev_dvm change_header random_header header_sh
+        dev_disp change_header random_header header_sh
     ;;
     modify-header-with-shell)
-        dev_dvm header_dvm change_header transfer_header header_sh
+        dev_disp header_disp change_header transfer_header header_sh
     ;;
     *)
         usage
