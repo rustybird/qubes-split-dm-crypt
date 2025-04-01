@@ -57,7 +57,7 @@ new_offline_dvm() {
 
         if qvm-create --class DispVM --template "$template" --label "$label" \
                       --prop netvm= --prop auto_cleanup=True "$dvm"; then
-            qvm-start --quiet "$dvm"
+            qvm-start "$dvm"
             echo "$dvm"
             return 0
         else
@@ -202,7 +202,7 @@ attach_decrypted() {
         message "started destination DisposableVM $DEST_VM"
     else
         message "ensuring destination VM is running"
-        qvm-start --quiet --skip-if-running "$DEST_VM"
+        qvm-start --skip-if-running "$DEST_VM"
     fi
 
     message "attaching $dm_dev to $DEST_VM"
