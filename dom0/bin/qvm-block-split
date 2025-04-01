@@ -44,7 +44,7 @@ in_out() {
 
 out() { in_out "$@" </dev/null; }
 
-new_offline_disp() {
+launch_disp() {
     local template
     local label
     local disp
@@ -94,7 +94,7 @@ dev_disp() {
         exit 1
     fi
 
-    DEV_DISP=$(new_offline_disp device)
+    DEV_DISP=$(launch_disp device)
     HEADER_DISP=$DEV_DISP  # for non header_disp() case
 
     message "in $DEV_DISP: disabling block device content parsing"
@@ -109,7 +109,7 @@ dev_disp() {
 }
 
 header_disp() {
-    HEADER_DISP=$(new_offline_disp header)
+    HEADER_DISP=$(launch_disp header)
 
     "$@"
 
@@ -194,7 +194,7 @@ attach_decrypted() {
     fi
 
     if [[ $DEST_VM == [@$]dispvm ]]; then
-        DEST_VM=$(new_offline_disp destination)
+        DEST_VM=$(launch_disp destination)
     else
         message "ensuring $DEST_VM is running"
         qvm-start --skip-if-running "$DEST_VM"
