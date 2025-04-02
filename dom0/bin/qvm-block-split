@@ -72,14 +72,10 @@ launch_disp() {
     return 1
 }
 
-qvm_block_list_retry() {
-    until qvm-block list; do sleep 1; done
-}
-
 qvm_block_list_device_attached_vm() {
-    qvm_block_list_retry |
+    qvm-block list "${1%%:*}" |
     sed -e "/^$1 .*)$/!d" -e 's/ *([^()]\+)$//' -e 's/.* //' |
-    grep -m 1 .
+    grep .
 }
 
 
@@ -89,7 +85,7 @@ dev_disp() {
     local DEV_DISP
     local HEADER_DISP
 
-    if ! qvm_block_list_retry | grep -q "^$BLOCK_DEV "; then
+    if ! qvm-block list "${BLOCK_DEV%%:*}" | grep -q "^$BLOCK_DEV "; then
         message "error: could not find block device $BLOCK_DEV"
         exit 1
     fi
@@ -178,7 +174,7 @@ open() {
 }
 
 find_dm_dev() {
-    qvm_block_list_retry |
+    qvm-block list "$1" |
     grep -m 1 -E "^$1:dm-[0-9]+ +split-dm-crypt( |$)" |
     cut -f 1 -d " "
 }
