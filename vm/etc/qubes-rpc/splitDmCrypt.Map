@@ -20,7 +20,6 @@ good_response=$(
 }
 
 IFS=' ' read -r cipher key offset_blocks sector_size_param <<<"$good_response"
-[[ ${#key} == 128 || $cipher != aes-xts-plain64 ]] || message "warning: short key is not post-quantum secure"
 device_blocks=$(blockdev --getsz "$DEVICE")
 mapped_blocks=$(( device_blocks - offset_blocks ))
 table="0 $mapped_blocks crypt $cipher $key 0 $DEVICE $offset_blocks${sector_size_param:+ 1 $sector_size_param}"
