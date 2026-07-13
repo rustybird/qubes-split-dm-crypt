@@ -6,6 +6,8 @@ PROGRAM="/bin/cat /sys/module/block/parameters/no_part_scan", RESULT=="N", GOTO=
 ENV{UDEV_DISABLE_PERSISTENT_STORAGE_RULES_FLAG}="1"
 ENV{DM_NOSCAN}="1"
 ENV{UDISKS_IGNORE}="1"
+# ensure decrypted device is exported despite flags
+KERNEL=="dm-[0-9]*", ATTR{dm/name}=="split-dm-crypt", ENV{QUBES_EXPORT_BLOCK_DEVICE}="1"
 LABEL="assign_end"
 
 # keep those flags active in subsequent events
@@ -13,6 +15,14 @@ ACTION=="add", GOTO="import_end"
 IMPORT{db}="UDEV_DISABLE_PERSISTENT_STORAGE_RULES_FLAG"
 IMPORT{db}="DM_NOSCAN"
 IMPORT{db}="UDISKS_IGNORE"
+IMPORT{db}="QUBES_EXPORT_BLOCK_DEVICE"
 LABEL="import_end"
+
+# FIXME: workaround for 99-qubes-block.rules disregarding
+# QUBES_EXPORT_BLOCK_DEVICE due to UDISKS_IGNORE
+ENV{QUBES_EXPORT_BLOCK_DEVICE}!="1", GOTO="end"
+ENV{UDISKS_IGNORE}!="1",             GOTO="end"
+ACTION=="add|change", RUN+="/usr/lib/qubes/udev-block-add-change"
+ACTION=="remove",     RUN+="/usr/lib/qubes/udev-block-remove"
 
 LABEL="end"
