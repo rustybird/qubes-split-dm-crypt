@@ -118,7 +118,7 @@ format_header() {
     message "in $HEADER_DISP: running luksFormat on header file"
     (
         direct_tty
-        in_out --service "$HEADER_DISP" splitDmCrypt.FormatHeader+"$TYPE"
+        in_out --service "$HEADER_DISP" split-dm-crypt.FormatHeader+"$TYPE"
     )
 }
 
@@ -126,21 +126,21 @@ header_sh() {
     message "in $HEADER_DISP: opening shell"
     (
         direct_tty
-        in_out --service "$HEADER_DISP" splitDmCrypt.Shell
+        in_out --service "$HEADER_DISP" split-dm-crypt.Shell
     )
 }
 
 random_header() {
     message "in $HEADER_DISP: generating random header"
-    out "$HEADER_DISP" "$FAKERPC splitDmCrypt.ReceiveHeader $TYPE </dev/random"
+    out "$HEADER_DISP" "$FAKERPC split-dm-crypt.ReceiveHeader $TYPE </dev/random"
 }
 
 transfer_header() {
     message "sending header from $DEV_DISP to $HEADER_DISP"
     (
         red_text
-        out    --service    "$DEV_DISP" splitDmCrypt.SendHeader+"$TYPE" |
-        in_out --service "$HEADER_DISP" splitDmCrypt.ReceiveHeader+"$TYPE"
+        out    --service    "$DEV_DISP" split-dm-crypt.SendHeader+"$TYPE" |
+        in_out --service "$HEADER_DISP" split-dm-crypt.ReceiveHeader+"$TYPE"
     )
 }
 
@@ -155,7 +155,7 @@ transfer_keyfile() {
                 printf '%s\0' "$KEYFILE_PATH" |
                 in_out "$KEYFILE_VM" "cd ~user && xargs -0 cat --"
             fi |
-            in_out --service "$HEADER_DISP" splitDmCrypt.ReceiveKeyfile
+            in_out --service "$HEADER_DISP" split-dm-crypt.ReceiveKeyfile
         )
     fi
 }
@@ -169,8 +169,8 @@ open() {
         red_text
         (
             direct_tty
-            in_out --service "$HEADER_DISP" splitDmCrypt.SendKey+"$TYPE"
-        ) | in_out --service    "$DEV_DISP" splitDmCrypt.Map+"$TYPE"
+            in_out --service "$HEADER_DISP" split-dm-crypt.SendKey+"$TYPE"
+        ) | in_out --service    "$DEV_DISP" split-dm-crypt.Map+"$TYPE"
     )
 }
 
@@ -222,7 +222,7 @@ double_detach() {
     fi
 
     message "in $dev_disp: unmapping"
-    out --service "$dev_disp" splitDmCrypt.Unmap
+    out --service "$dev_disp" split-dm-crypt.Unmap
 
     message "detaching $BLOCK_DEV from $dev_disp"
     qvm-block detach "$dev_disp" "$BLOCK_DEV"
@@ -233,14 +233,14 @@ double_detach() {
 
 overwrite_everything_with_random() {
     message "in $DEV_DISP: mapping with random key"
-    out "$DEV_DISP" "$FAKERPC; splitDmCrypt.SendKey+random |
-                               splitDmCrypt.Map nohdr"
+    out "$DEV_DISP" "$FAKERPC; split-dm-crypt.SendKey+random |
+                               split-dm-crypt.Map nohdr"
 
     message "in $DEV_DISP: overwriting"
-    out --service "$DEV_DISP" splitDmCrypt.ZeroMapped
+    out --service "$DEV_DISP" split-dm-crypt.ZeroMapped
 
     message "in $DEV_DISP: unmapping"
-    out --service "$DEV_DISP" splitDmCrypt.Unmap
+    out --service "$DEV_DISP" split-dm-crypt.Unmap
 
     message "stopping $DEV_DISP"
     qvm-kill "$DEV_DISP"
@@ -258,13 +258,13 @@ change_header() {
         message "sending header from $HEADER_DISP to $DEV_DISP"
         (
             red_text
-            out    --service "$HEADER_DISP" splitDmCrypt.SendHeader+file |
-            in_out --service    "$DEV_DISP" splitDmCrypt.ReceiveHeader+"$TYPE"
+            out    --service "$HEADER_DISP" split-dm-crypt.SendHeader+file |
+            in_out --service    "$DEV_DISP" split-dm-crypt.ReceiveHeader+"$TYPE"
         )
     fi
 
     message "in $DEV_DISP: writing header to device"
-    out --service "$DEV_DISP" splitDmCrypt.ReplaceHeader+"$TYPE"
+    out --service "$DEV_DISP" split-dm-crypt.ReplaceHeader+"$TYPE"
 
     message "detaching $BLOCK_DEV from $DEV_DISP"
     qvm-block detach "$DEV_DISP" "$BLOCK_DEV"
