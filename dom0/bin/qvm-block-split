@@ -186,7 +186,7 @@ attach_decrypted() {
     "$@"
 
     if ! dm_dev=$(find_dm_dev "$DEV_DISP"); then
-        message "error: could not find device-mapper device in $DEV_DISP"
+        message "error: could not find dm device in $DEV_DISP"
         exit 1
     fi
 
@@ -212,7 +212,7 @@ double_detach() {
     fi
 
     if ! dm_dev=$(find_dm_dev "$dev_disp"); then
-        message "error: could not find device-mapper device in $dev_disp"
+        message "error: could not find dm device in $dev_disp"
         exit 1
     fi
 
