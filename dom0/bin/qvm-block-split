@@ -102,6 +102,9 @@ dev_disp() {
     qvm-block attach --option frontend-dev=xvds "${READONLY[@]}" \
                      "$DEV_DISP" "$BLOCK_DEV"
 
+    message "in $DEV_DISP: checking device content is unparsed"
+    out --service "$DEV_DISP" split-dm-crypt.CheckDeviceUnparsed+encrypted
+
     "$@"
 }
 
@@ -172,6 +175,9 @@ open() {
             in_out --service "$HEADER_DISP" split-dm-crypt.SendKey+"$TYPE"
         ) | in_out --service    "$DEV_DISP" split-dm-crypt.Map+"$TYPE"
     )
+
+    message "in $DEV_DISP: checking dm device content is unparsed"
+    out --service "$DEV_DISP" split-dm-crypt.CheckDeviceUnparsed+decrypted
 }
 
 find_dm_dev() {
