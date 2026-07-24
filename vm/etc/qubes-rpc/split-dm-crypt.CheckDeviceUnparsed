@@ -13,4 +13,4 @@ udevadm settle
 
 mm=$(stat -L -c %Hr:%Lr -- "$dev")
 exec </run/udev/data/b"$mm"
-if grep -E '^E:ID_FS_(TYPE|USAGE)='; then exit 1; fi
+! grep -E '^E:ID_FS_(TYPE|USAGE)='
